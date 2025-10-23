@@ -4,26 +4,31 @@
 
 class Player {
     constructor() {
-        this.name = "Red";
-        this.x = CONSTANTS.PLAYER_START.x;
-        this.y = CONSTANTS.PLAYER_START.y;
+        this.name = "Alex";
+        this.x = 20;  // Start in center of Piston Town
+        this.y = 15;
         this.direction = CONSTANTS.DIRECTIONS.DOWN;
-        this.currentMap = CONSTANTS.PLAYER_START.map;
+        this.currentMap = 'piston_town';
 
-        // Party
-        this.party = [
-            new Train(1, 5),  // Starter train
-        ];
+        // Party - empty until starter selection
+        this.party = [];
 
         // Inventory
         this.items = {
-            potion: 3,
-            super_potion: 1,
-            pokeball: 5
+            potion: 5,
+            super_potion: 0,
+            pokeball: 5,
+            train_ticket: 1
         };
 
         this.money = 3000;
-        this.badges = 0;
+        this.badges = [];  // Array of badge names
+        this.badgeCount = 0;
+
+        // Story flags
+        this.hasStarterTrain = false;
+        this.metProfessor = false;
+        this.defeatedGymLeaders = [];
 
         // Animation
         this.isMoving = false;
@@ -32,7 +37,7 @@ class Player {
         this.targetY = this.y;
     }
 
-    move(direction) {
+    move(direction, map = null) {
         if (this.isMoving) return false;
 
         this.direction = direction;
@@ -55,8 +60,17 @@ class Player {
                 break;
         }
 
-        // Check collision (simplified - would check map data in full game)
-        if (newX >= 0 && newX < 20 && newY >= 0 && newY < 18) {
+        // Check collision with map if provided
+        if (map) {
+            if (map.isWalkable(newX, newY)) {
+                this.targetX = newX;
+                this.targetY = newY;
+                this.isMoving = true;
+                this.moveProgress = 0;
+                return true;
+            }
+        } else {
+            // Fallback for compatibility
             this.targetX = newX;
             this.targetY = newY;
             this.isMoving = true;
@@ -107,6 +121,19 @@ class Player {
         return false;
     }
 
+    earnBadge(badgeName) {
+        if (!this.badges.includes(badgeName)) {
+            this.badges.push(badgeName);
+            this.badgeCount = this.badges.length;
+            return true;
+        }
+        return false;
+    }
+
+    hasBadge(badgeName) {
+        return this.badges.includes(badgeName);
+    }
+
     toJSON() {
         return {
             name: this.name,
@@ -117,7 +144,11 @@ class Player {
             party: this.party.map(t => t.toJSON()),
             items: this.items,
             money: this.money,
-            badges: this.badges
+            badges: this.badges,
+            badgeCount: this.badgeCount,
+            hasStarterTrain: this.hasStarterTrain,
+            metProfessor: this.metProfessor,
+            defeatedGymLeaders: this.defeatedGymLeaders
         };
     }
 
@@ -131,7 +162,11 @@ class Player {
         player.party = data.party.map(t => Train.fromJSON(t));
         player.items = data.items;
         player.money = data.money;
-        player.badges = data.badges;
+        player.badges = data.badges || [];
+        player.badgeCount = data.badgeCount || 0;
+        player.hasStarterTrain = data.hasStarterTrain || false;
+        player.metProfessor = data.metProfessor || false;
+        player.defeatedGymLeaders = data.defeatedGymLeaders || [];
         return player;
     }
 }
