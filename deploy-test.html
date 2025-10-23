@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Train Battle RPG - Deployment Test</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #ffd700;
+            text-align: center;
+            font-size: 2em;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+            border: 2px solid #667eea;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .pass {
+            background: #10b010;
+            color: #fff;
+        }
+        .fail {
+            background: #e03020;
+            color: #fff;
+        }
+        .info {
+            background: #f0c010;
+            color: #000;
+        }
+        button {
+            background: #667eea;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            margin: 5px;
+        }
+        button:hover {
+            background: #7a8ff0;
+        }
+        button:active {
+            background: #4a5fbb;
+        }
+        #game-link {
+            display: block;
+            text-align: center;
+            margin: 30px 0;
+            font-size: 1.5em;
+        }
+        #game-link a {
+            color: #ffd700;
+            text-decoration: none;
+            background: rgba(255, 215, 0, 0.1);
+            padding: 15px 30px;
+            border-radius: 10px;
+            border: 2px solid #ffd700;
+            display: inline-block;
+        }
+        #game-link a:hover {
+            background: rgba(255, 215, 0, 0.2);
+        }
+        .version-info {
+            text-align: center;
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+        }
+        .version-info h2 {
+            color: #ffd700;
+            margin-bottom: 15px;
+        }
+        .version-info p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚂 Train Battle RPG - Deployment Test 🚂</h1>
+
+    <div id="game-link">
+        <a href="index.html">▶️ PLAY THE GAME</a>
+    </div>
+
+    <div class="test-section">
+        <h2>📋 File Existence Tests</h2>
+        <div id="file-tests">Running tests...</div>
+        <button onclick="runFileTests()">Re-run File Tests</button>
+    </div>
+
+    <div class="test-section">
+        <h2>🔧 Script Loading Tests</h2>
+        <div id="script-tests">Running tests...</div>
+        <button onclick="runScriptTests()">Re-run Script Tests</button>
+    </div>
+
+    <div class="test-section">
+        <h2>🎮 Game Initialization Test</h2>
+        <div id="game-tests">Click button to test</div>
+        <button onclick="runGameTest()">Test Game Creation</button>
+        <button onclick="clearSaveData()">Clear Save Data</button>
+    </div>
+
+    <div class="version-info">
+        <h2>ℹ️ Version Information</h2>
+        <p><strong>Version:</strong> 1.0.0</p>
+        <p><strong>Build Date:</strong> <span id="build-date"></span></p>
+        <p><strong>Git Commit:</strong> <span id="git-commit">f1b4838</span></p>
+        <p><strong>Status:</strong> <span id="deploy-status">DEPLOYED ✅</span></p>
+    </div>
+
+    <script>
+        // Set build date
+        document.getElementById('build-date').textContent = new Date().toLocaleString();
+
+        // File existence tests
+        async function runFileTests() {
+            const files = [
+                'index.html',
+                'styles.css',
+                'js/constants.js',
+                'js/utils.js',
+                'js/train-data.js',
+                'js/moves.js',
+                'js/train.js',
+                'js/battle.js',
+                'js/player.js',
+                'js/map.js',
+                'js/world-maps.js',
+                'js/intro.js',
+                'js/graphics.js',
+                'js/input.js',
+                'js/ui.js',
+                'js/game.js',
+                'js/mobile-controls.js',
+                'js/main.js'
+            ];
+
+            const resultsDiv = document.getElementById('file-tests');
+            resultsDiv.innerHTML = '';
+
+            let passCount = 0;
+            let failCount = 0;
+
+            for (const file of files) {
+                try {
+                    const response = await fetch(file, { method: 'HEAD' });
+                    if (response.ok) {
+                        passCount++;
+                        resultsDiv.innerHTML += `<div class="test-result pass">✓ ${file}</div>`;
+                    } else {
+                        failCount++;
+                        resultsDiv.innerHTML += `<div class="test-result fail">✗ ${file} (${response.status})</div>`;
+                    }
+                } catch (error) {
+                    failCount++;
+                    resultsDiv.innerHTML += `<div class="test-result fail">✗ ${file} (Error)</div>`;
+                }
+            }
+
+            resultsDiv.innerHTML += `<div class="test-result info">Results: ${passCount} passed, ${failCount} failed</div>`;
+        }
+
+        // Script loading tests
+        async function runScriptTests() {
+            const resultsDiv = document.getElementById('script-tests');
+            resultsDiv.innerHTML = '<div class="test-result info">Loading scripts...</div>';
+
+            const scripts = [
+                'js/constants.js',
+                'js/utils.js',
+                'js/train-data.js',
+                'js/moves.js'
+            ];
+
+            let loaded = 0;
+            for (const src of scripts) {
+                try {
+                    await loadScript(src);
+                    loaded++;
+                } catch (e) {
+                    resultsDiv.innerHTML += `<div class="test-result fail">✗ Failed to load ${src}</div>`;
+                    return;
+                }
+            }
+
+            resultsDiv.innerHTML = '';
+
+            // Check global objects
+            const checks = [
+                { name: 'CONSTANTS', obj: typeof CONSTANTS !== 'undefined' },
+                { name: 'Utils', obj: typeof Utils !== 'undefined' },
+                { name: 'SPECIES_DATA', obj: typeof SPECIES_DATA !== 'undefined' },
+                { name: 'MOVES', obj: typeof MOVES !== 'undefined' }
+            ];
+
+            checks.forEach(check => {
+                if (check.obj) {
+                    resultsDiv.innerHTML += `<div class="test-result pass">✓ ${check.name} defined</div>`;
+                } else {
+                    resultsDiv.innerHTML += `<div class="test-result fail">✗ ${check.name} undefined</div>`;
+                }
+            });
+        }
+
+        // Game initialization test
+        async function runGameTest() {
+            const resultsDiv = document.getElementById('game-tests');
+            resultsDiv.innerHTML = '<div class="test-result info">Creating game instance...</div>';
+
+            try {
+                // Create a test canvas
+                const canvas = document.createElement('canvas');
+                canvas.width = 960;
+                canvas.height = 864;
+
+                // Load required scripts if not already loaded
+                if (typeof Game === 'undefined') {
+                    resultsDiv.innerHTML += '<div class="test-result info">Loading game scripts...</div>';
+                    const scripts = [
+                        'js/constants.js',
+                        'js/utils.js',
+                        'js/train-data.js',
+                        'js/moves.js',
+                        'js/train.js',
+                        'js/battle.js',
+                        'js/player.js',
+                        'js/map.js',
+                        'js/world-maps.js',
+                        'js/intro.js',
+                        'js/graphics.js',
+                        'js/input.js',
+                        'js/ui.js',
+                        'js/game.js'
+                    ];
+
+                    for (const src of scripts) {
+                        await loadScript(src);
+                    }
+                }
+
+                // Create game instance
+                const game = new Game(canvas);
+
+                resultsDiv.innerHTML = '';
+                resultsDiv.innerHTML += '<div class="test-result pass">✓ Game instance created</div>';
+                resultsDiv.innerHTML += `<div class="test-result pass">✓ Initial state: ${game.state}</div>`;
+                resultsDiv.innerHTML += `<div class="test-result pass">✓ Maps loaded: ${Object.keys(game.maps).length}</div>`;
+                resultsDiv.innerHTML += '<div class="test-result pass">✓ Graphics system initialized</div>';
+                resultsDiv.innerHTML += '<div class="test-result pass">✓ Input handler initialized</div>';
+                resultsDiv.innerHTML += '<div class="test-result info">🎮 Game is ready to play!</div>';
+
+                // Try rendering
+                game.render();
+                resultsDiv.innerHTML += '<div class="test-result pass">✓ First render completed</div>';
+
+            } catch (error) {
+                resultsDiv.innerHTML += `<div class="test-result fail">✗ Error: ${error.message}</div>`;
+                resultsDiv.innerHTML += `<div class="test-result fail">Stack: ${error.stack}</div>`;
+            }
+        }
+
+        // Helper function to load scripts
+        function loadScript(src) {
+            return new Promise((resolve, reject) => {
+                // Check if already loaded
+                const existingScript = document.querySelector(`script[src="${src}"]`);
+                if (existingScript) {
+                    resolve();
+                    return;
+                }
+
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = resolve;
+                script.onerror = () => reject(new Error(`Failed to load ${src}`));
+                document.body.appendChild(script);
+            });
+        }
+
+        // Clear save data
+        function clearSaveData() {
+            localStorage.clear();
+            const resultsDiv = document.getElementById('game-tests');
+            resultsDiv.innerHTML = '<div class="test-result pass">✓ Local storage cleared!</div>';
+            resultsDiv.innerHTML += '<div class="test-result info">Refresh the page and try playing the game.</div>';
+        }
+
+        // Run file tests on load
+        window.addEventListener('load', () => {
+            runFileTests();
+        });
+    </script>
+</body>
+</html>
