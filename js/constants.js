@@ -14,7 +14,7 @@ const CONSTANTS = {
 
     // Game info
     GAME_TITLE: "Train Battle RPG",
-    VERSION: "1.0.3",
+    VERSION: "1.0.4",
 
     // Colors (Game Boy style palette)
     COLORS: {

@@ -125,6 +125,10 @@ class StarterSelection {
                 choiceBased: true
             },
             {
+                speaker: 'You',
+                text: 'I choo-choose you, [TRAIN]!'
+            },
+            {
                 speaker: 'Professor Cypress',
                 text: 'Now then! Your [TRAIN] is officially registered to you as its Conductor. The bond between you two begins today!'
             },
@@ -186,8 +190,11 @@ class StarterSelection {
 
         this.postSelectionDialogue[0].text = choiceDialogues[this.selection];
 
-        // Replace [TRAIN] placeholder with actual name
+        // Replace [TRAIN] placeholder with actual name in "I choo-choose you" line
         this.postSelectionDialogue[1].text = this.postSelectionDialogue[1].text.replace('[TRAIN]', this.selectedTrain.name);
+
+        // Replace [TRAIN] placeholder in registration line
+        this.postSelectionDialogue[2].text = this.postSelectionDialogue[2].text.replace('[TRAIN]', this.selectedTrain.name);
 
         return new Train(this.selectedTrain.id, 5);
     }
