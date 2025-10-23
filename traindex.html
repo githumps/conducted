@@ -65,9 +65,9 @@
 
         .train-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
             gap: 20px;
-            max-width: 1400px;
+            max-width: 1600px;
             margin: 0 auto;
         }
 
@@ -87,11 +87,54 @@
             border-color: #ffd700;
         }
 
+        .evolution-stages {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(200, 200, 200, 0.2);
+            border-radius: 10px;
+        }
+
+        .evolution-stage {
+            text-align: center;
+            flex: 1;
+        }
+
+        .evolution-stage-label {
+            font-size: 11px;
+            color: #fff;
+            font-weight: bold;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            padding: 3px 8px;
+            border-radius: 5px;
+            display: inline-block;
+        }
+
+        .evolution-stage:nth-child(1) .evolution-stage-label {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+        }
+
+        .evolution-stage:nth-child(2) .evolution-stage-label {
+            background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%);
+        }
+
+        .evolution-stage:nth-child(3) .evolution-stage-label {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+
         .train-sprite {
-            width: 120px;
-            height: 120px;
-            margin: 10px auto;
+            width: 100px;
+            height: 100px;
+            margin: 5px auto;
             position: relative;
+        }
+
+        .train-sprite img {
+            max-width: 100%;
+            max-height: 100%;
         }
 
         .train-number {
@@ -184,6 +227,9 @@
     <div class="header">
         <h1>🚂 TRAINDEX 🚂</h1>
         <p>Complete Encyclopedia of All 151 Train Species</p>
+        <p style="font-size: 14px; color: #ffd700; margin-top: 10px;">
+            ✨ See how each train evolves from baby → teen → adult!
+        </p>
     </div>
 
     <div class="controls">
@@ -236,14 +282,49 @@
         }
 
         // Render train sprite to canvas and return as data URL
-        function renderTrainSprite(speciesId) {
+        function renderTrainSprite(speciesId, level) {
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Draw train at level 50 (adult form)
-            graphics.drawCuteTrainSprite(speciesId, 50, 10, 10, 100);
+            // Draw train at specified level to show evolution stage
+            graphics.drawCuteTrainSprite(speciesId, level, 10, 10, 100);
 
             return canvas.toDataURL();
+        }
+
+        // Determine evolution stages for a species
+        function getEvolutionStages(species) {
+            const stages = [];
+
+            // Always show baby form
+            stages.push({ label: 'Baby', level: 5 });
+
+            // If this train evolves, show teen form
+            if (species.evolution) {
+                const midLevel = Math.floor(species.evolution.level / 2) + 3;
+                stages.push({ label: 'Teen', level: midLevel });
+                stages.push({ label: 'Adult', level: species.evolution.level });
+            } else {
+                // Check if this is a middle or final evolution
+                let isEvolved = false;
+                for (let id in TRAIN_SPECIES) {
+                    const s = TRAIN_SPECIES[id];
+                    if (s.evolution && s.evolution.evolvesTo === species.id) {
+                        isEvolved = true;
+                        // This is an evolved form, show teen and adult
+                        stages.push({ label: 'Teen', level: 20 });
+                        stages.push({ label: 'Adult', level: 50 });
+                        break;
+                    }
+                }
+                if (!isEvolved) {
+                    // Final evolution - show all three stages
+                    stages.push({ label: 'Teen', level: 20 });
+                    stages.push({ label: 'Adult', level: 50 });
+                }
+            }
+
+            return stages;
         }
 
         // Create train card HTML
@@ -278,13 +359,24 @@
             const stats = species.baseStats;
             const statsText = `HP: ${stats.hp} | ATK: ${stats.attack} | DEF: ${stats.defense}<br>SPD: ${stats.speed} | SPC: ${stats.special}`;
 
+            // Evolution stages
+            const stages = getEvolutionStages(species);
+            const stagesHTML = stages.map(stage => `
+                <div class="evolution-stage">
+                    <div class="evolution-stage-label">${stage.label}</div>
+                    <div class="train-sprite">
+                        <img src="${renderTrainSprite(species.id, stage.level)}" alt="${species.name} ${stage.label}">
+                    </div>
+                </div>
+            `).join('');
+
             card.innerHTML = `
                 <div class="train-number">#${String(species.id).padStart(3, '0')}</div>
-                <div class="train-sprite">
-                    <img src="${renderTrainSprite(species.id)}" alt="${species.name}">
-                </div>
                 <div class="train-name">${species.name}</div>
                 <div class="train-types">${typeBadges}</div>
+                <div class="evolution-stages">
+                    ${stagesHTML}
+                </div>
                 <div class="train-stats">${statsText}</div>
                 <div class="evolution-chain">${evolutionText}</div>
             `;
