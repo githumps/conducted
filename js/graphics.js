@@ -1,12 +1,44 @@
 /**
- * Graphics and Rendering System
+ * Enhanced Graphics System with Scrolling Camera
  */
 
 class Graphics {
     constructor(ctx) {
         this.ctx = ctx;
-        this.tileSize = CONSTANTS.TILE_SIZE;
-        this.scale = CONSTANTS.SCALE;
+        this.tileSize = 16;
+        this.scale = 3;
+
+        // Camera system
+        this.camera = {
+            x: 0,
+            y: 0,
+            targetX: 0,
+            targetY: 0,
+            smooth: true
+        };
+
+        // Screen dimensions in tiles
+        this.screenTilesX = 20;
+        this.screenTilesY = 18;
+    }
+
+    updateCamera(player, map) {
+        // Center camera on player
+        const targetX = player.x - Math.floor(this.screenTilesX / 2);
+        const targetY = player.y - Math.floor(this.screenTilesY / 2);
+
+        // Clamp camera to map bounds
+        this.camera.targetX = Math.max(0, Math.min(targetX, map.width - this.screenTilesX));
+        this.camera.targetY = Math.max(0, Math.min(targetY, map.height - this.screenTilesY));
+
+        // Smooth camera movement
+        if (this.camera.smooth) {
+            this.camera.x += (this.camera.targetX - this.camera.x) * 0.1;
+            this.camera.y += (this.camera.targetY - this.camera.y) * 0.1;
+        } else {
+            this.camera.x = this.camera.targetX;
+            this.camera.y = this.camera.targetY;
+        }
     }
 
     clear() {
@@ -14,99 +46,360 @@ class Graphics {
         this.ctx.fillRect(0, 0, CONSTANTS.CANVAS_WIDTH, CONSTANTS.CANVAS_HEIGHT);
     }
 
-    drawMap(map, offsetX = 0, offsetY = 0) {
-        for (let y = 0; y < map.height; y++) {
-            for (let x = 0; x < map.width; x++) {
+    drawMap(map, camera = { x: 0, y: 0 }) {
+        const startX = Math.floor(camera.x);
+        const startY = Math.floor(camera.y);
+        const endX = Math.min(startX + this.screenTilesX + 1, map.width);
+        const endY = Math.min(startY + this.screenTilesY + 1, map.height);
+
+        for (let y = startY; y < endY; y++) {
+            for (let x = startX; x < endX; x++) {
                 const tile = map.getTile(x, y);
-                this.drawTile(tile, x, y, offsetX, offsetY);
+                this.drawTile(tile, x - startX, y - startY);
             }
         }
     }
 
-    drawTile(tileType, x, y, offsetX = 0, offsetY = 0) {
-        const screenX = (x + offsetX) * this.tileSize * this.scale;
-        const screenY = (y + offsetY) * this.tileSize * this.scale;
+    drawTile(tileType, screenX, screenY) {
+        const x = screenX * this.tileSize * this.scale;
+        const y = screenY * this.tileSize * this.scale;
         const size = this.tileSize * this.scale;
 
-        // Simple tile colors (in full game, would use sprites)
-        let color;
+        let color, pattern = null;
+
         switch (tileType) {
-            case 0:
-                color = '#2C3E50'; // Wall
+            case TILE_TYPES.VOID:
+                color = '#000000';
                 break;
-            case 1:
-                color = '#27AE60'; // Grass
+            case TILE_TYPES.GRASS:
+                color = '#27AE60';
+                pattern = 'grass';
                 break;
-            case 2:
-                color = '#BDC3C7'; // Path
+            case TILE_TYPES.TALL_GRASS:
+                color = '#1E8449';
+                pattern = 'tallgrass';
+                break;
+            case TILE_TYPES.PATH:
+                color = '#BDC3C7';
+                pattern = 'path';
+                break;
+            case TILE_TYPES.WATER:
+                color = '#3498DB';
+                pattern = 'water';
+                break;
+            case TILE_TYPES.WALL:
+                color = '#2C3E50';
+                pattern = 'wall';
+                break;
+            case TILE_TYPES.RAILS:
+                color = '#7F8C8D';
+                pattern = 'rails';
+                break;
+            case TILE_TYPES.BUILDING:
+                color = '#E74C3C';
+                pattern = 'building';
+                break;
+            case TILE_TYPES.STATION:
+                color = '#F39C12';
+                pattern = 'station';
+                break;
+            case TILE_TYPES.GRAVEYARD:
+                color = '#34495E';
+                pattern = 'graveyard';
+                break;
+            case TILE_TYPES.SAND:
+                color = '#F4D03F';
+                pattern = 'sand';
+                break;
+            case TILE_TYPES.CAVE:
+                color = '#1C2833';
+                pattern = 'cave';
                 break;
             default:
                 color = '#34495E';
         }
 
+        // Base tile
         this.ctx.fillStyle = color;
-        this.ctx.fillRect(screenX, screenY, size, size);
+        this.ctx.fillRect(x, y, size, size);
 
-        // Add grass pattern
-        if (tileType === 1) {
-            this.ctx.fillStyle = '#229954';
-            const dotSize = 3;
-            this.ctx.fillRect(screenX + size / 4, screenY + size / 4, dotSize, dotSize);
-            this.ctx.fillRect(screenX + size * 3 / 4, screenY + size / 4, dotSize, dotSize);
-            this.ctx.fillRect(screenX + size / 2, screenY + size * 3 / 4, dotSize, dotSize);
+        // Add pattern details
+        this.drawTilePattern(pattern, x, y, size);
+    }
+
+    drawTilePattern(pattern, x, y, size) {
+        if (!pattern) return;
+
+        const third = size / 3;
+        const quarter = size / 4;
+
+        switch (pattern) {
+            case 'grass':
+                this.ctx.fillStyle = '#229954';
+                this.ctx.fillRect(x + quarter, y + quarter, 3, 3);
+                this.ctx.fillRect(x + size * 0.7, y + quarter, 3, 3);
+                this.ctx.fillRect(x + size / 2, y + size * 0.7, 3, 3);
+                break;
+
+            case 'tallgrass':
+                this.ctx.fillStyle = '#145A32';
+                for (let i = 0; i < 6; i++) {
+                    const offsetX = (i % 3) * (size / 3) + 5;
+                    const offsetY = Math.floor(i / 3) * (size / 2) + 5;
+                    this.ctx.fillRect(x + offsetX, y + offsetY, 2, 8);
+                }
+                break;
+
+            case 'path':
+                this.ctx.fillStyle = '#95A5A6';
+                this.ctx.fillRect(x + 5, y + 5, size - 10, 2);
+                this.ctx.fillRect(x + 5, y + size - 7, size - 10, 2);
+                break;
+
+            case 'water':
+                this.ctx.fillStyle = '#5DADE2';
+                this.ctx.beginPath();
+                this.ctx.arc(x + size * 0.3, y + size * 0.3, 3, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.beginPath();
+                this.ctx.arc(x + size * 0.7, y + size * 0.6, 3, 0, Math.PI * 2);
+                this.ctx.fill();
+                break;
+
+            case 'rails':
+                this.ctx.fillStyle = '#5D6D7E';
+                this.ctx.fillRect(x + size * 0.3, y, 4, size);
+                this.ctx.fillRect(x + size * 0.6, y, 4, size);
+                this.ctx.fillStyle = '#2C3E50';
+                for (let i = 0; i < 3; i++) {
+                    this.ctx.fillRect(x, y + i * (size / 3) + 5, size, 3);
+                }
+                break;
+
+            case 'graveyard':
+                this.ctx.fillStyle = '#7B7D7D';
+                this.ctx.fillRect(x + size / 3, y + size / 4, 10, 20);
+                this.ctx.fillRect(x + size / 3 + 3, y + size / 4 - 5, 4, 8);
+                break;
         }
     }
 
-    drawPlayer(player) {
-        const pos = player.getDisplayPosition();
-        const x = pos.x * this.tileSize * this.scale;
-        const y = pos.y * this.tileSize * this.scale;
+    drawPlayer(player, camera) {
+        const screenX = (player.x - camera.x) * this.tileSize * this.scale;
+        const screenY = (player.y - camera.y) * this.tileSize * this.scale;
         const size = this.tileSize * this.scale;
 
-        // Draw simple player sprite
-        this.ctx.fillStyle = '#E74C3C'; // Red
-        this.ctx.fillRect(x + size / 4, y + size / 4, size / 2, size / 2);
+        // Draw player sprite (more detailed)
+        this.drawPlayerSprite(screenX, screenY, size, player.direction);
+    }
 
-        // Draw direction indicator
-        this.ctx.fillStyle = '#000000';
-        switch (player.direction) {
+    drawPlayerSprite(x, y, size, direction) {
+        // Head
+        this.ctx.fillStyle = '#F5CBA7';
+        this.ctx.fillRect(x + size * 0.3, y + size * 0.2, size * 0.4, size * 0.3);
+
+        // Hat
+        this.ctx.fillStyle = '#E74C3C';
+        this.ctx.fillRect(x + size * 0.25, y + size * 0.15, size * 0.5, size * 0.15);
+
+        // Body
+        this.ctx.fillStyle = '#3498DB';
+        this.ctx.fillRect(x + size * 0.3, y + size * 0.5, size * 0.4, size * 0.3);
+
+        // Legs
+        this.ctx.fillStyle = '#2C3E50';
+        this.ctx.fillRect(x + size * 0.35, y + size * 0.8, size * 0.12, size * 0.2);
+        this.ctx.fillRect(x + size * 0.53, y + size * 0.8, size * 0.12, size * 0.2);
+
+        // Direction indicator
+        this.ctx.fillStyle = '#F39C12';
+        switch (direction) {
             case CONSTANTS.DIRECTIONS.UP:
-                this.ctx.fillRect(x + size / 2 - 3, y + size / 4 - 6, 6, 6);
+                this.ctx.fillRect(x + size * 0.45, y + size * 0.1, size * 0.1, size * 0.08);
                 break;
             case CONSTANTS.DIRECTIONS.DOWN:
-                this.ctx.fillRect(x + size / 2 - 3, y + size * 3 / 4, 6, 6);
+                this.ctx.fillRect(x + size * 0.45, y + size * 0.5, size * 0.1, size * 0.08);
                 break;
             case CONSTANTS.DIRECTIONS.LEFT:
-                this.ctx.fillRect(x + size / 4 - 6, y + size / 2 - 3, 6, 6);
+                this.ctx.fillRect(x + size * 0.2, y + size * 0.55, size * 0.08, size * 0.1);
                 break;
             case CONSTANTS.DIRECTIONS.RIGHT:
-                this.ctx.fillRect(x + size * 3 / 4, y + size / 2 - 3, 6, 6);
+                this.ctx.fillRect(x + size * 0.72, y + size * 0.55, size * 0.08, size * 0.1);
+                break;
+        }
+    }
+
+    drawNPC(npc, camera) {
+        const screenX = (npc.x - camera.x) * this.tileSize * this.scale;
+        const screenY = (npc.y - camera.y) * this.tileSize * this.scale;
+        const size = this.tileSize * this.scale;
+
+        // Draw NPC based on type
+        if (npc.type === 'gym_leader') {
+            this.drawGymLeader(screenX, screenY, size, npc);
+        } else if (npc.type === 'trainer') {
+            this.drawTrainer(screenX, screenY, size);
+        } else {
+            this.drawGenericNPC(screenX, screenY, size);
+        }
+    }
+
+    drawGymLeader(x, y, size, npc) {
+        // Special colors for gym leaders
+        const badgeColor = npc.badgeColor || '#FFD700';
+
+        // Head
+        this.ctx.fillStyle = '#F5CBA7';
+        this.ctx.fillRect(x + size * 0.3, y + size * 0.2, size * 0.4, size * 0.3);
+
+        // Crown/Badge
+        this.ctx.fillStyle = badgeColor;
+        this.ctx.fillRect(x + size * 0.25, y + size * 0.15, size * 0.5, size * 0.1);
+
+        // Body
+        this.ctx.fillStyle = npc.color || '#9B59B6';
+        this.ctx.fillRect(x + size * 0.3, y + size * 0.5, size * 0.4, size * 0.3);
+
+        // Cape
+        this.ctx.fillStyle = '#2C3E50';
+        this.ctx.fillRect(x + size * 0.2, y + size * 0.55, size * 0.6, size * 0.25);
+    }
+
+    drawTrainer(x, y, size) {
+        // Regular trainer
+        this.ctx.fillStyle = '#F5CBA7';
+        this.ctx.fillRect(x + size * 0.3, y + size * 0.2, size * 0.4, size * 0.3);
+
+        this.ctx.fillStyle = '#16A085';
+        this.ctx.fillRect(x + size * 0.3, y + size * 0.5, size * 0.4, size * 0.5);
+    }
+
+    drawGenericNPC(x, y, size) {
+        // Generic NPC
+        this.ctx.fillStyle = '#F5CBA7';
+        this.ctx.fillRect(x + size * 0.3, y + size * 0.2, size * 0.4, size * 0.3);
+
+        this.ctx.fillStyle = '#7D3C98';
+        this.ctx.fillRect(x + size * 0.3, y + size * 0.5, size * 0.4, size * 0.5);
+    }
+
+    drawEnhancedTrainSprite(train, x, y, isPlayer) {
+        const size = 150; // Larger sprites
+
+        // Get type colors
+        const primaryColor = CONSTANTS.TYPE_COLORS[train.types[0]] || '#888888';
+        const secondaryColor = train.types[1] ? CONSTANTS.TYPE_COLORS[train.types[1]] : primaryColor;
+
+        // Draw detailed train based on type
+        this.ctx.save();
+
+        // Main body
+        this.ctx.fillStyle = primaryColor;
+        this.ctx.fillRect(x, y + size * 0.4, size, size * 0.4);
+
+        // Cab/Engine
+        this.ctx.fillStyle = secondaryColor;
+        this.ctx.fillRect(x + size * 0.2, y + size * 0.2, size * 0.6, size * 0.4);
+
+        // Windows
+        this.ctx.fillStyle = '#87CEEB';
+        this.ctx.fillRect(x + size * 0.3, y + size * 0.25, size * 0.15, size * 0.15);
+        this.ctx.fillRect(x + size * 0.55, y + size * 0.25, size * 0.15, size * 0.15);
+
+        // Wheels
+        this.ctx.fillStyle = '#2C3E50';
+        this.ctx.beginPath();
+        this.ctx.arc(x + size * 0.25, y + size * 0.85, size * 0.12, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.beginPath();
+        this.ctx.arc(x + size * 0.5, y + size * 0.85, size * 0.12, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.beginPath();
+        this.ctx.arc(x + size * 0.75, y + size * 0.85, size * 0.12, 0, Math.PI * 2);
+        this.ctx.fill();
+
+        // Type-specific details
+        this.drawTrainTypeDetails(train.types[0], x, y, size);
+
+        this.ctx.restore();
+    }
+
+    drawTrainTypeDetails(type, x, y, size) {
+        switch (type) {
+            case 'STEAM':
+                // Smokestack
+                this.ctx.fillStyle = '#34495E';
+                this.ctx.fillRect(x + size * 0.4, y + size * 0.1, size * 0.2, size * 0.15);
+                // Smoke puffs
+                this.ctx.fillStyle = 'rgba(200, 200, 200, 0.6)';
+                this.ctx.beginPath();
+                this.ctx.arc(x + size * 0.5, y + size * 0.05, size * 0.1, 0, Math.PI * 2);
+                this.ctx.fill();
+                break;
+
+            case 'ELECTRIC':
+                // Lightning bolt
+                this.ctx.fillStyle = '#F1C40F';
+                this.ctx.beginPath();
+                this.ctx.moveTo(x + size * 0.45, y + size * 0.1);
+                this.ctx.lineTo(x + size * 0.55, y + size * 0.15);
+                this.ctx.lineTo(x + size * 0.5, y + size * 0.15);
+                this.ctx.lineTo(x + size * 0.55, y + size * 0.2);
+                this.ctx.lineTo(x + size * 0.45, y + size * 0.15);
+                this.ctx.lineTo(x + size * 0.5, y + size * 0.15);
+                this.ctx.closePath();
+                this.ctx.fill();
+                break;
+
+            case 'DIESEL':
+                // Exhaust pipe
+                this.ctx.fillStyle = '#7F8C8D';
+                this.ctx.fillRect(x + size * 0.7, y + size * 0.15, size * 0.08, size * 0.1);
+                break;
+
+            case 'MAGLEV':
+                // Hover effect
+                this.ctx.strokeStyle = '#9B59B6';
+                this.ctx.lineWidth = 3;
+                this.ctx.beginPath();
+                this.ctx.moveTo(x, y + size * 0.9);
+                this.ctx.lineTo(x + size, y + size * 0.9);
+                this.ctx.stroke();
+                break;
+
+            case 'NUCLEAR':
+                // Radiation symbol
+                this.ctx.fillStyle = '#27AE60';
+                this.ctx.beginPath();
+                this.ctx.arc(x + size * 0.5, y + size * 0.15, size * 0.08, 0, Math.PI * 2);
+                this.ctx.fill();
                 break;
         }
     }
 
     drawBattle(battle) {
-        // Draw battle background
-        this.ctx.fillStyle = '#87CEEB';
-        this.ctx.fillRect(0, 0, CONSTANTS.CANVAS_WIDTH, CONSTANTS.CANVAS_HEIGHT / 2);
-        this.ctx.fillStyle = '#8B4513';
-        this.ctx.fillRect(0, CONSTANTS.CANVAS_HEIGHT / 2, CONSTANTS.CANVAS_WIDTH, CONSTANTS.CANVAS_HEIGHT / 2);
+        // Enhanced battle background
+        const gradient = this.ctx.createLinearGradient(0, 0, 0, CONSTANTS.CANVAS_HEIGHT);
+        gradient.addColorStop(0, '#87CEEB');
+        gradient.addColorStop(0.5, '#E8F4F8');
+        gradient.addColorStop(1, '#8B4513');
+        this.ctx.fillStyle = gradient;
+        this.ctx.fillRect(0, 0, CONSTANTS.CANVAS_WIDTH, CONSTANTS.CANVAS_HEIGHT);
 
-        // Draw enemy train platform
+        // Draw platforms with shadow
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+        this.ctx.fillRect(502, 172, 200, 10);
+        this.ctx.fillRect(152, 472, 200, 10);
+
         this.ctx.fillStyle = '#654321';
-        this.ctx.fillRect(500, 150, 200, 20);
+        this.ctx.fillRect(500, 170, 200, 20);
+        this.ctx.fillRect(150, 470, 200, 20);
 
-        // Draw player train platform
-        this.ctx.fillStyle = '#654321';
-        this.ctx.fillRect(150, 450, 200, 20);
+        // Draw enhanced train sprites
+        this.drawEnhancedTrainSprite(battle.enemyActive, 520, 50, false);
+        this.drawEnhancedTrainSprite(battle.playerActive, 170, 350, true);
 
-        // Draw enemy train (simplified sprite)
-        this.drawTrainSprite(battle.enemyActive, 550, 50, false);
-
-        // Draw player train (simplified sprite)
-        this.drawTrainSprite(battle.playerActive, 200, 350, true);
-
-        // Draw HP bars
+        // Draw HUD
         this.drawBattleHUD(battle);
 
         // Draw battle menu or message
@@ -117,33 +410,6 @@ class Graphics {
         } else {
             this.drawMessage(battle.getCurrentMessage());
         }
-    }
-
-    drawTrainSprite(train, x, y, isPlayer) {
-        const size = 120;
-
-        // Draw train body (simplified - using colored rectangles)
-        const typeColor = CONSTANTS.TYPE_COLORS[train.types[0]] || '#888888';
-
-        this.ctx.fillStyle = typeColor;
-        this.ctx.fillRect(x, y + size / 2, size, size / 2);
-
-        // Draw train wheels
-        this.ctx.fillStyle = '#000000';
-        this.ctx.beginPath();
-        this.ctx.arc(x + 30, y + size, 15, 0, Math.PI * 2);
-        this.ctx.fill();
-        this.ctx.beginPath();
-        this.ctx.arc(x + 90, y + size, 15, 0, Math.PI * 2);
-        this.ctx.fill();
-
-        // Draw train cab
-        this.ctx.fillStyle = typeColor;
-        this.ctx.fillRect(x + size / 4, y + size / 4, size / 2, size / 2);
-
-        // Draw chimney/antenna based on type
-        this.ctx.fillStyle = '#333333';
-        this.ctx.fillRect(x + size / 2 - 10, y, 20, size / 4);
     }
 
     drawBattleHUD(battle) {
@@ -158,9 +424,13 @@ class Graphics {
         const width = 350;
         const height = showHP ? 100 : 80;
 
-        // Background
-        this.ctx.fillStyle = CONSTANTS.COLORS.WHITE;
+        // Background with gradient
+        const gradient = this.ctx.createLinearGradient(x, y, x, y + height);
+        gradient.addColorStop(0, '#FFFFFF');
+        gradient.addColorStop(1, '#E8E8E8');
+        this.ctx.fillStyle = gradient;
         this.ctx.fillRect(x, y, width, height);
+
         this.ctx.strokeStyle = CONSTANTS.COLORS.BLACK;
         this.ctx.lineWidth = 3;
         this.ctx.strokeRect(x, y, width, height);
@@ -346,9 +616,60 @@ class Graphics {
 
         this.ctx.textAlign = 'left';
     }
+
+    drawDialogue(dialogue) {
+        const x = 50;
+        const y = 600;
+        const width = 860;
+        const height = 210;
+
+        // Dialogue box
+        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+        this.ctx.fillRect(x, y, width, height);
+        this.ctx.strokeStyle = CONSTANTS.COLORS.BLACK;
+        this.ctx.lineWidth = 4;
+        this.ctx.strokeRect(x, y, width, height);
+
+        // Speaker name
+        if (dialogue.speaker) {
+            this.ctx.fillStyle = CONSTANTS.COLORS.UI_HIGHLIGHT;
+            this.ctx.font = 'bold 18px monospace';
+            this.ctx.fillText(dialogue.speaker, x + 20, y + 30);
+        }
+
+        // Message text
+        this.ctx.fillStyle = CONSTANTS.COLORS.BLACK;
+        this.ctx.font = '18px monospace';
+
+        const lines = Utils.wrapText(dialogue.text, width - 40, this.ctx, 18);
+        for (let i = 0; i < Math.min(lines.length, 5); i++) {
+            this.ctx.fillText(lines[i], x + 20, y + (dialogue.speaker ? 60 : 40) + i * 28);
+        }
+
+        // Continue arrow
+        if (Math.floor(Date.now() / 500) % 2 === 0) {
+            this.ctx.fillText('▼', x + width - 40, y + height - 30);
+        }
+    }
 }
+
+// Tile types
+const TILE_TYPES = {
+    VOID: 0,
+    GRASS: 1,
+    TALL_GRASS: 2,
+    PATH: 3,
+    WATER: 4,
+    WALL: 5,
+    RAILS: 6,
+    BUILDING: 7,
+    STATION: 8,
+    GRAVEYARD: 9,
+    SAND: 10,
+    CAVE: 11
+};
 
 // Export
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = Graphics;
+    module.exports = { Graphics, TILE_TYPES };
 }
