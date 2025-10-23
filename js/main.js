@@ -50,13 +50,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, 30000);
 
-    // Try to load save on start
-    if (game.load()) {
+    // Try to load save on start (but stay on title screen if it fails)
+    const loadSuccess = game.load();
+    if (loadSuccess) {
         console.log('📁 Save game loaded!');
+    } else {
+        console.log('💡 No valid save found - starting fresh!');
+        // Ensure we're on the title screen
+        game.state = CONSTANTS.STATES.TITLE;
     }
 
     console.log('✅ Train Battle RPG Ready!');
-    console.log('Press ENTER on the title screen to start!');
+    console.log(`📍 Current state: ${game.state}`);
+    console.log('🎮 Press ENTER on the title screen to start!');
 });
 
 /**

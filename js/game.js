@@ -641,17 +641,46 @@ class Game {
     }
 
     load() {
-        const saveData = Utils.loadFromStorage('trainbattle_save');
+        try {
+            const saveData = Utils.loadFromStorage('trainbattle_save');
 
-        if (saveData && saveData.version === CONSTANTS.VERSION) {
-            this.player = Player.fromJSON(saveData.player);
-            this.currentMap = this.maps[this.player.currentMap];
-            this.state = CONSTANTS.STATES.OVERWORLD;
-            console.log('Game loaded!');
-            return true;
+            if (saveData && saveData.version === CONSTANTS.VERSION) {
+                this.player = Player.fromJSON(saveData.player);
+
+                // Validate the loaded data
+                if (!this.player || !this.player.currentMap) {
+                    console.warn('Invalid save data: missing player or map');
+                    return false;
+                }
+
+                // Ensure the map exists
+                this.currentMap = this.maps[this.player.currentMap];
+                if (!this.currentMap) {
+                    console.warn(`Map '${this.player.currentMap}' not found`);
+                    return false;
+                }
+
+                // Ensure player has at least one train
+                if (!this.player.party || this.player.party.length === 0) {
+                    console.warn('Invalid save data: no trains in party');
+                    return false;
+                }
+
+                this.state = CONSTANTS.STATES.OVERWORLD;
+                console.log('Game loaded successfully!');
+                return true;
+            }
+
+            return false;
+        } catch (error) {
+            console.error('Error loading save:', error);
+            return false;
         }
+    }
 
-        return false;
+    clearSave() {
+        localStorage.removeItem('trainbattle_save');
+        console.log('Save data cleared!');
     }
 
     exportSaveToken() {

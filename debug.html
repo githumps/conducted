@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Train Battle RPG - Debug</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #000;
+            color: #0f0;
+            padding: 20px;
+        }
+        #output {
+            white-space: pre-wrap;
+        }
+        .error { color: #f00; }
+        .success { color: #0f0; }
+        .info { color: #ff0; }
+    </style>
+</head>
+<body>
+    <h1>Train Battle RPG - Diagnostic Tool</h1>
+    <div id="output"></div>
+
+    <script>
+        const output = document.getElementById('output');
+        function log(msg, type = 'info') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.textContent = msg;
+            output.appendChild(div);
+        }
+
+        log('=== Starting Diagnostic ===', 'info');
+        log('');
+
+        // Load scripts in order
+        const scripts = [
+            'js/constants.js',
+            'js/utils.js',
+            'js/train-data.js',
+            'js/moves.js',
+            'js/train.js',
+            'js/battle.js',
+            'js/player.js',
+            'js/map.js',
+            'js/world-maps.js',
+            'js/intro.js',
+            'js/graphics.js',
+            'js/input.js',
+            'js/ui.js',
+            'js/game.js',
+            'js/mobile-controls.js'
+        ];
+
+        let loadedScripts = 0;
+
+        function loadScript(src) {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = () => {
+                    log(`✓ Loaded: ${src}`, 'success');
+                    resolve();
+                };
+                script.onerror = () => {
+                    log(`✗ Failed to load: ${src}`, 'error');
+                    reject(new Error(`Failed to load ${src}`));
+                };
+                document.body.appendChild(script);
+            });
+        }
+
+        async function runDiagnostics() {
+            // Load all scripts
+            for (const src of scripts) {
+                try {
+                    await loadScript(src);
+                } catch (e) {
+                    log(`ERROR loading ${src}: ${e.message}`, 'error');
+                    return;
+                }
+            }
+
+            log('', 'info');
+            log('=== Checking Global Objects ===', 'info');
+
+            // Check CONSTANTS
+            if (typeof CONSTANTS !== 'undefined') {
+                log(`✓ CONSTANTS defined`, 'success');
+                log(`  - CANVAS_WIDTH: ${CONSTANTS.CANVAS_WIDTH}`, 'info');
+                log(`  - CANVAS_HEIGHT: ${CONSTANTS.CANVAS_HEIGHT}`, 'info');
+                log(`  - STATES: ${Object.keys(CONSTANTS.STATES).join(', ')}`, 'info');
+            } else {
+                log(`✗ CONSTANTS undefined`, 'error');
+            }
+
+            // Check Utils
+            if (typeof Utils !== 'undefined') {
+                log(`✓ Utils defined`, 'success');
+            } else {
+                log(`✗ Utils undefined`, 'error');
+            }
+
+            // Check Graphics
+            if (typeof Graphics !== 'undefined') {
+                log(`✓ Graphics class defined`, 'success');
+            } else {
+                log(`✗ Graphics class undefined`, 'error');
+            }
+
+            // Check Game
+            if (typeof Game !== 'undefined') {
+                log(`✓ Game class defined`, 'success');
+            } else {
+                log(`✗ Game class undefined`, 'error');
+            }
+
+            // Check IntroScene
+            if (typeof IntroScene !== 'undefined') {
+                log(`✓ IntroScene class defined`, 'success');
+            } else {
+                log(`✗ IntroScene class undefined`, 'error');
+            }
+
+            // Check StarterSelection
+            if (typeof StarterSelection !== 'undefined') {
+                log(`✓ StarterSelection class defined`, 'success');
+            } else {
+                log(`✗ StarterSelection class undefined`, 'error');
+            }
+
+            // Check DialogueBox
+            if (typeof DialogueBox !== 'undefined') {
+                log(`✓ DialogueBox class defined`, 'success');
+            } else {
+                log(`✗ DialogueBox class undefined`, 'error');
+            }
+
+            log('', 'info');
+            log('=== Creating Test Canvas ===', 'info');
+
+            // Create canvas
+            const canvas = document.createElement('canvas');
+            canvas.width = 960;
+            canvas.height = 864;
+            canvas.style.border = '2px solid #0f0';
+            canvas.style.display = 'block';
+            canvas.style.marginTop = '20px';
+            document.body.appendChild(canvas);
+            log(`✓ Canvas created: ${canvas.width}x${canvas.height}`, 'success');
+
+            // Create game instance
+            try {
+                const game = new Game(canvas);
+                log(`✓ Game instance created`, 'success');
+                log(`  - State: ${game.state}`, 'info');
+                log(`  - Maps: ${Object.keys(game.maps).join(', ')}`, 'info');
+
+                // Try to render
+                game.render();
+                log(`✓ First render call completed`, 'success');
+
+                // Start game loop for 1 second
+                let frames = 0;
+                const startTime = Date.now();
+                function testLoop() {
+                    game.update(0.016);
+                    game.render();
+                    frames++;
+                    if (Date.now() - startTime < 1000) {
+                        requestAnimationFrame(testLoop);
+                    } else {
+                        log(`✓ Rendered ${frames} frames in 1 second`, 'success');
+                        log('', 'info');
+                        log('=== Diagnostic Complete ===', 'success');
+                        log('If you see the title screen above, the game is working!', 'info');
+                        log('Press ENTER on the canvas to start the game.', 'info');
+                    }
+                }
+                requestAnimationFrame(testLoop);
+
+            } catch (e) {
+                log(`✗ Failed to create game instance: ${e.message}`, 'error');
+                log(e.stack, 'error');
+            }
+        }
+
+        runDiagnostics();
+    </script>
+</body>
+</html>
