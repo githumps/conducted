@@ -300,6 +300,49 @@ class Game {
 
         return false;
     }
+
+    exportSaveToken() {
+        if (this.player) {
+            const saveData = {
+                version: CONSTANTS.VERSION,
+                player: this.player.toJSON(),
+                timestamp: Date.now()
+            };
+
+            // Convert to base64 for easy copying
+            const jsonString = JSON.stringify(saveData);
+            const token = btoa(jsonString);
+
+            console.log('Save token generated!');
+            return token;
+        }
+
+        return null;
+    }
+
+    importSaveToken(token) {
+        try {
+            // Decode from base64
+            const jsonString = atob(token);
+            const saveData = JSON.parse(jsonString);
+
+            // Validate save data
+            if (saveData && saveData.version === CONSTANTS.VERSION && saveData.player) {
+                this.player = Player.fromJSON(saveData.player);
+                this.state = CONSTANTS.STATES.OVERWORLD;
+
+                // Also save to localStorage
+                Utils.saveToStorage('trainbattle_save', saveData);
+
+                console.log('Save token imported successfully!');
+                return true;
+            }
+        } catch (error) {
+            console.error('Failed to import save token:', error);
+        }
+
+        return false;
+    }
 }
 
 // Export

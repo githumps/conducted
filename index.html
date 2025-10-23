@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Train Battle RPG - A Pokemon-Style Train Adventure!</title>
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -15,19 +17,76 @@
 
         <canvas id="gameCanvas" width="960" height="864"></canvas>
 
+        <!-- Mobile Touch Controls -->
+        <div id="mobile-controls" class="mobile-only">
+            <div id="dpad-container">
+                <button class="dpad-btn" id="btn-up" data-key="up">▲</button>
+                <button class="dpad-btn" id="btn-left" data-key="left">◄</button>
+                <button class="dpad-btn" id="btn-center"></button>
+                <button class="dpad-btn" id="btn-right" data-key="right">►</button>
+                <button class="dpad-btn" id="btn-down" data-key="down">▼</button>
+            </div>
+            <div id="action-buttons">
+                <button class="action-btn" id="btn-b" data-key="b">B</button>
+                <button class="action-btn" id="btn-a" data-key="a">A</button>
+            </div>
+        </div>
+
+        <!-- Save/Load Controls -->
+        <div id="save-load-controls">
+            <button id="btn-save" class="save-load-btn">💾 Save</button>
+            <button id="btn-load" class="save-load-btn">📁 Load</button>
+            <button id="btn-export" class="save-load-btn">📤 Export Token</button>
+            <button id="btn-import" class="save-load-btn">📥 Import Token</button>
+            <span id="save-status"></span>
+        </div>
+
+        <!-- Export/Import Modal -->
+        <div id="token-modal" class="modal hidden">
+            <div class="modal-content">
+                <h2>Save Token</h2>
+                <p>Copy this token to load your game on another device:</p>
+                <textarea id="token-textarea" readonly></textarea>
+                <button id="btn-copy-token" class="modal-btn">📋 Copy to Clipboard</button>
+                <button id="btn-close-modal" class="modal-btn">Close</button>
+            </div>
+        </div>
+
+        <div id="import-modal" class="modal hidden">
+            <div class="modal-content">
+                <h2>Import Save Token</h2>
+                <p>Paste your save token here:</p>
+                <textarea id="import-textarea" placeholder="Paste your save token here..."></textarea>
+                <button id="btn-import-confirm" class="modal-btn">✅ Import</button>
+                <button id="btn-close-import-modal" class="modal-btn">Cancel</button>
+            </div>
+        </div>
+
         <div id="controls-info">
             <h3>Controls</h3>
-            <p>
-                <strong>Arrow Keys:</strong> Move<br>
-                <strong>Z / Enter:</strong> Confirm / Interact<br>
-                <strong>X / Backspace:</strong> Cancel / Menu<br>
-                <strong>ESC:</strong> Return to Title
-            </p>
+            <div class="desktop-controls">
+                <p>
+                    <strong>Desktop:</strong><br>
+                    <strong>Arrow Keys:</strong> Move<br>
+                    <strong>Z / Enter:</strong> Confirm / Interact<br>
+                    <strong>X / Backspace:</strong> Cancel / Menu<br>
+                    <strong>ESC:</strong> Return to Title
+                </p>
+            </div>
+            <div class="mobile-controls-info">
+                <p>
+                    <strong>Mobile:</strong><br>
+                    <strong>D-Pad:</strong> Move<br>
+                    <strong>A Button:</strong> Confirm / Interact<br>
+                    <strong>B Button:</strong> Cancel / Menu
+                </p>
+            </div>
         </div>
 
         <div id="game-info">
             <p>A pixel-perfect replica of Pokémon Red/Blue, but with <strong>TRAINS</strong>!</p>
             <p>Collect all 151 train species and become the ultimate Train Master!</p>
+            <p><strong>Auto-saves every 30 seconds!</strong> Use Save/Load buttons above for manual control.</p>
         </div>
     </div>
 
@@ -44,6 +103,7 @@
     <script src="js/input.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/game.js"></script>
+    <script src="js/mobile-controls.js"></script>
     <script src="js/main.js"></script>
 </body>
 </html>

@@ -6,6 +6,8 @@ class InputHandler {
     constructor() {
         this.keys = {};
         this.keyJustPressed = {};
+        this.virtualKeys = {}; // For mobile touch controls
+        this.virtualKeysJustPressed = {};
 
         this.setupListeners();
     }
@@ -42,7 +44,15 @@ class InputHandler {
     }
 
     getAction() {
-        // Check for just pressed keys to avoid repeating
+        // Check for virtual keys (mobile) first
+        if (this.isVirtualKeyJustPressed('up')) return 'up';
+        if (this.isVirtualKeyJustPressed('down')) return 'down';
+        if (this.isVirtualKeyJustPressed('left')) return 'left';
+        if (this.isVirtualKeyJustPressed('right')) return 'right';
+        if (this.isVirtualKeyJustPressed('a')) return 'a';
+        if (this.isVirtualKeyJustPressed('b')) return 'b';
+
+        // Check for physical keyboard keys
         if (this.isKeyJustPressed('ArrowUp')) return 'up';
         if (this.isKeyJustPressed('ArrowDown')) return 'down';
         if (this.isKeyJustPressed('ArrowLeft')) return 'left';
@@ -55,8 +65,30 @@ class InputHandler {
         return null;
     }
 
+    // Mobile touch control simulation
+    simulateKeyPress(key) {
+        if (!this.virtualKeys[key]) {
+            this.virtualKeysJustPressed[key] = true;
+        }
+        this.virtualKeys[key] = true;
+    }
+
+    simulateKeyRelease(key) {
+        this.virtualKeys[key] = false;
+        this.virtualKeysJustPressed[key] = false;
+    }
+
+    isVirtualKeyJustPressed(key) {
+        const pressed = this.virtualKeysJustPressed[key] || false;
+        if (pressed) {
+            this.virtualKeysJustPressed[key] = false;
+        }
+        return pressed;
+    }
+
     reset() {
         this.keyJustPressed = {};
+        this.virtualKeysJustPressed = {};
     }
 }
 
