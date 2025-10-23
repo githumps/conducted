@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Quick Test - TILE_TYPES Fix</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #0f0; }
+        .pass { color: #0f0; }
+        .fail { color: #f00; }
+    </style>
+</head>
+<body>
+    <h1>Quick Test - TILE_TYPES Fix</h1>
+    <div id="results"></div>
+
+    <script>
+        const log = (msg, pass = true) => {
+            const div = document.getElementById('results');
+            div.innerHTML += `<p class="${pass ? 'pass' : 'fail'}">${pass ? '✓' : '✗'} ${msg}</p>`;
+        };
+
+        // Capture errors
+        window.onerror = (msg, url, line) => {
+            log(`ERROR at line ${line}: ${msg}`, false);
+            return false;
+        };
+    </script>
+
+    <!-- Load scripts -->
+    <script src="js/constants.js"></script>
+    <script>log('constants.js loaded');</script>
+
+    <script src="js/utils.js"></script>
+    <script>log('utils.js loaded');</script>
+
+    <script src="js/train-data.js"></script>
+    <script>log('train-data.js loaded');</script>
+
+    <script src="js/moves.js"></script>
+    <script>log('moves.js loaded');</script>
+
+    <script src="js/train.js"></script>
+    <script>log('train.js loaded');</script>
+
+    <script src="js/battle.js"></script>
+    <script>log('battle.js loaded');</script>
+
+    <script src="js/player.js"></script>
+    <script>log('player.js loaded');</script>
+
+    <script src="js/map.js"></script>
+    <script>log('map.js loaded');</script>
+
+    <script src="js/world-maps.js"></script>
+    <script>
+        log('world-maps.js loaded');
+        log(`TILE_TYPES defined: ${typeof TILE_TYPES !== 'undefined'}`);
+        if (typeof TILE_TYPES !== 'undefined') {
+            log(`TILE_TYPES.GRASS = ${TILE_TYPES.GRASS}`);
+        }
+    </script>
+
+    <script src="js/intro.js"></script>
+    <script>log('intro.js loaded');</script>
+
+    <script src="js/graphics.js"></script>
+    <script>
+        log('graphics.js loaded - NO DUPLICATE TILE_TYPES ERROR!');
+        log(`Graphics class exists: ${typeof Graphics !== 'undefined'}`);
+    </script>
+
+    <script src="js/input.js"></script>
+    <script>log('input.js loaded');</script>
+
+    <script src="js/ui.js"></script>
+    <script>log('ui.js loaded');</script>
+
+    <script src="js/game.js"></script>
+    <script>log('game.js loaded');</script>
+
+    <script>
+        log('');
+        log('=== ALL SCRIPTS LOADED SUCCESSFULLY ===');
+        log('');
+        log('Testing Game instantiation...');
+        try {
+            const canvas = document.createElement('canvas');
+            const game = new Game(canvas);
+            log(`Game instance created! Initial state: ${game.state}`);
+            log('Game.init() completed without errors');
+        } catch (error) {
+            log(`Game instantiation FAILED: ${error.message}`, false);
+            console.error(error);
+        }
+    </script>
+</body>
+</html>

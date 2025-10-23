@@ -6,69 +6,125 @@
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🚂 Train Battle RPG Starting...');
 
-    // Get canvas
-    const canvas = document.getElementById('gameCanvas');
-    if (!canvas) {
-        console.error('Canvas not found!');
-        return;
-    }
-
-    // Create game instance
-    const game = new Game(canvas);
-
-    // Initialize mobile controls
-    const mobileControls = new MobileControls(game.input);
-
-    // Setup save/load buttons
-    setupSaveLoadButtons(game);
-
-    // Game loop
-    let lastTime = 0;
-
-    function gameLoop(timestamp) {
-        const deltaTime = (timestamp - lastTime) / 1000;
-        lastTime = timestamp;
-
-        // Update
-        game.update(deltaTime);
-
-        // Render
-        game.render();
-
-        // Continue loop
-        requestAnimationFrame(gameLoop);
-    }
-
-    // Start game loop
-    console.log('🎮 Game loop starting!');
-    requestAnimationFrame(gameLoop);
-
-    // Auto-save every 30 seconds
-    setInterval(() => {
-        if (game.player && game.state === CONSTANTS.STATES.OVERWORLD) {
-            game.save();
+    // Update load status helper
+    function updateLoadStatus(message, color = '#ff6b6b') {
+        const loadStatus = document.getElementById('load-status');
+        if (loadStatus) {
+            loadStatus.style.color = color;
+            loadStatus.textContent = message;
         }
-    }, 30000);
-
-    // Try to load save on start (but stay on title screen if it fails)
-    const loadSuccess = game.load();
-    if (loadSuccess) {
-        console.log('📁 Save game loaded!');
-    } else {
-        console.log('💡 No valid save found - starting fresh!');
-        // Ensure we're on the title screen
-        game.state = CONSTANTS.STATES.TITLE;
     }
 
-    console.log('✅ Train Battle RPG Ready!');
-    console.log(`📍 Current state: ${game.state}`);
-    console.log('🎮 Press ENTER on the title screen to start!');
+    // Wrap everything in try-catch for debugging
+    try {
+        updateLoadStatus('Initializing...', '#ffaa00');
 
-    // Update load status indicator
-    const loadStatus = document.getElementById('load-status');
-    if (loadStatus) {
-        loadStatus.style.color = '#10b010';
-        loadStatus.textContent = `Ready! State: ${game.state}`;
+        // Get canvas
+        const canvas = document.getElementById('gameCanvas');
+        if (!canvas) {
+            console.error('Canvas not found!');
+            updateLoadStatus('ERROR: Canvas not found!', '#ff0000');
+            return;
+        }
+        console.log('✓ Canvas found');
+        updateLoadStatus('Canvas found...', '#ffaa00');
+
+        // Create game instance
+        console.log('Creating game instance...');
+        updateLoadStatus('Creating game...', '#ffaa00');
+        const game = new Game(canvas);
+        console.log('✓ Game instance created');
+        updateLoadStatus('Game created...', '#ffaa00');
+
+        // Initialize mobile controls
+        console.log('Initializing mobile controls...');
+        updateLoadStatus('Setting up controls...', '#ffaa00');
+        const mobileControls = new MobileControls(game.input);
+        console.log('✓ Mobile controls initialized');
+
+        // Setup save/load buttons
+        console.log('Setting up save/load buttons...');
+        setupSaveLoadButtons(game);
+        console.log('✓ Save/load buttons setup');
+
+        // Game loop
+        let lastTime = 0;
+
+        function gameLoop(timestamp) {
+            try {
+                const deltaTime = (timestamp - lastTime) / 1000;
+                lastTime = timestamp;
+
+                // Update
+                game.update(deltaTime);
+
+                // Render
+                game.render();
+
+                // Continue loop
+                requestAnimationFrame(gameLoop);
+            } catch (error) {
+                console.error('❌ Error in game loop:', error);
+                updateLoadStatus(`ERROR: ${error.message}`, '#ff0000');
+            }
+        }
+
+        // Start game loop
+        console.log('🎮 Game loop starting!');
+        updateLoadStatus('Starting game loop...', '#ffaa00');
+        requestAnimationFrame(gameLoop);
+        console.log('✓ Game loop started');
+
+        // Auto-save every 30 seconds
+        setInterval(() => {
+            if (game.player && game.state === CONSTANTS.STATES.OVERWORLD) {
+                game.save();
+            }
+        }, 30000);
+
+        // Try to load save on start (but stay on title screen if it fails)
+        console.log('Checking for save data...');
+        updateLoadStatus('Loading save...', '#ffaa00');
+        const loadSuccess = game.load();
+        if (loadSuccess) {
+            console.log('📁 Save game loaded!');
+        } else {
+            console.log('💡 No valid save found - starting fresh!');
+            // Ensure we're on the title screen
+            game.state = CONSTANTS.STATES.TITLE;
+        }
+
+        console.log('✅ Train Battle RPG Ready!');
+        console.log(`📍 Current state: ${game.state}`);
+        console.log('🎮 Press ENTER on the title screen to start!');
+
+        // Update load status indicator - SUCCESS!
+        updateLoadStatus(`Ready! State: ${game.state}`, '#10b010');
+
+    } catch (error) {
+        console.error('❌ FATAL ERROR during initialization:', error);
+        console.error('Stack trace:', error.stack);
+        updateLoadStatus(`FATAL ERROR: ${error.message}`, '#ff0000');
+
+        // Display error on page for user
+        const gameContainer = document.getElementById('game-container');
+        if (gameContainer) {
+            const errorDiv = document.createElement('div');
+            errorDiv.style.cssText = 'position: absolute; top: 100px; left: 20px; right: 20px; background: rgba(255,0,0,0.9); color: white; padding: 20px; border-radius: 10px; font-family: monospace;';
+            errorDiv.innerHTML = `
+                <h2>🚨 Game Failed to Load</h2>
+                <p><strong>Error:</strong> ${error.message}</p>
+                <p><strong>Location:</strong> ${error.stack ? error.stack.split('\n')[1] : 'Unknown'}</p>
+                <h3>Troubleshooting:</h3>
+                <ol>
+                    <li>Press F12 to open Developer Console and check for errors</li>
+                    <li>Try clearing your browser cache (Ctrl+Shift+R)</li>
+                    <li>Try clearing localStorage: <button onclick="localStorage.clear(); location.reload();" style="padding: 5px 10px;">Clear & Reload</button></li>
+                    <li>Try a different browser or incognito mode</li>
+                </ol>
+            `;
+            gameContainer.appendChild(errorDiv);
+        }
     }
 });
 

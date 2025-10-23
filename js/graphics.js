@@ -653,21 +653,7 @@ class Graphics {
     }
 }
 
-// Tile types
-const TILE_TYPES = {
-    VOID: 0,
-    GRASS: 1,
-    TALL_GRASS: 2,
-    PATH: 3,
-    WATER: 4,
-    WALL: 5,
-    RAILS: 6,
-    BUILDING: 7,
-    STATION: 8,
-    GRAVEYARD: 9,
-    SAND: 10,
-    CAVE: 11
-};
+// Note: TILE_TYPES is defined in world-maps.js which loads before this file
 
 // Export
 if (typeof module !== 'undefined' && module.exports) {
