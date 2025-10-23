@@ -14,8 +14,10 @@ class Game {
         // Game state
         this.state = CONSTANTS.STATES.TITLE;
         this.player = null;
+        this.maps = {};
         this.currentMap = null;
         this.battle = null;
+        this.dialogueBox = new DialogueBox();
 
         // Timing
         this.stepCounter = 0;
@@ -27,16 +29,34 @@ class Game {
 
     init() {
         console.log('Train Battle RPG Initialized!');
-        this.currentMap = createStarterMap();
+
+        // Load all world maps
+        this.maps = createAllMaps();
+        console.log('Maps loaded:', Object.keys(this.maps));
     }
 
     newGame() {
         this.player = new Player();
+
+        // Give player a starter train (for testing - will add proper selection later)
+        const starterTrain = new Train(1, 5); // Steamini level 5
+        this.player.addTrain(starterTrain);
+        this.player.hasStarterTrain = true;
+
+        this.currentMap = this.maps[this.player.currentMap];
+
+        if (!this.currentMap) {
+            console.error('Map not found:', this.player.currentMap);
+            this.currentMap = this.maps['piston_town'];
+        }
+
         this.state = CONSTANTS.STATES.OVERWORLD;
         this.stepCounter = 0;
 
         console.log('New game started!');
-        console.log('Party:', this.player.party);
+        console.log('Starting location:', this.player.currentMap);
+        console.log('Player position:', this.player.x, this.player.y);
+        console.log('Starter train:', starterTrain.species.name);
     }
 
     update(deltaTime) {
@@ -55,6 +75,10 @@ class Game {
 
             case CONSTANTS.STATES.MENU:
                 this.updateMenu();
+                break;
+
+            case CONSTANTS.STATES.DIALOGUE:
+                this.updateDialogue();
                 break;
         }
 
@@ -75,33 +99,39 @@ class Game {
     updateOverworld(deltaTime) {
         this.player.update(deltaTime);
 
+        // Update camera
+        if (this.currentMap) {
+            this.graphics.updateCamera(this.player, this.currentMap);
+        }
+
         const action = this.input.getAction();
 
         if (!this.player.isMoving) {
             if (action === 'up') {
-                if (this.player.move(CONSTANTS.DIRECTIONS.UP)) {
+                if (this.player.move(CONSTANTS.DIRECTIONS.UP, this.currentMap)) {
                     this.stepCounter++;
                     this.checkForEncounter();
                 }
             } else if (action === 'down') {
-                if (this.player.move(CONSTANTS.DIRECTIONS.DOWN)) {
+                if (this.player.move(CONSTANTS.DIRECTIONS.DOWN, this.currentMap)) {
                     this.stepCounter++;
                     this.checkForEncounter();
                 }
             } else if (action === 'left') {
-                if (this.player.move(CONSTANTS.DIRECTIONS.LEFT)) {
+                if (this.player.move(CONSTANTS.DIRECTIONS.LEFT, this.currentMap)) {
                     this.stepCounter++;
                     this.checkForEncounter();
                 }
             } else if (action === 'right') {
-                if (this.player.move(CONSTANTS.DIRECTIONS.RIGHT)) {
+                if (this.player.move(CONSTANTS.DIRECTIONS.RIGHT, this.currentMap)) {
                     this.stepCounter++;
                     this.checkForEncounter();
                 }
             } else if (action === 'start') {
                 this.state = CONSTANTS.STATES.TITLE;
             } else if (action === 'a') {
-                // Interact (not implemented)
+                // Check for NPC interaction
+                this.checkInteraction();
             }
         }
     }
@@ -139,23 +169,102 @@ class Game {
         }
     }
 
+    updateDialogue() {
+        const action = this.input.getAction();
+
+        if (action === 'a') {
+            this.dialogueBox.advance();
+
+            if (!this.dialogueBox.isActive()) {
+                this.state = CONSTANTS.STATES.OVERWORLD;
+            }
+        }
+    }
+
     checkForEncounter() {
-        // Only check in grass tiles and if cooldown is over
+        // Only check in tall grass tiles and if cooldown is over
+        if (!this.currentMap) return;
+
         const tile = this.currentMap.getTile(this.player.x, this.player.y);
 
-        if (tile === 1 && this.encounterCooldown <= 0) {
+        // Check if in tall grass (TILE_TYPES.TALL_GRASS = 2)
+        if (tile === 2 && this.encounterCooldown <= 0 && this.player.party.length > 0) {
             if (this.currentMap.checkForEncounter()) {
                 this.startBattle();
             }
         }
     }
 
+    checkInteraction() {
+        if (!this.currentMap) return;
+
+        // Check direction player is facing
+        let checkX = this.player.x;
+        let checkY = this.player.y;
+
+        switch (this.player.direction) {
+            case CONSTANTS.DIRECTIONS.UP:
+                checkY--;
+                break;
+            case CONSTANTS.DIRECTIONS.DOWN:
+                checkY++;
+                break;
+            case CONSTANTS.DIRECTIONS.LEFT:
+                checkX--;
+                break;
+            case CONSTANTS.DIRECTIONS.RIGHT:
+                checkX++;
+                break;
+        }
+
+        // Check for NPC at that position
+        const npc = this.currentMap.getNPCAt(checkX, checkY);
+
+        if (npc) {
+            console.log('Interacting with:', npc.name);
+
+            if (npc.canBattle && !npc.defeated) {
+                // Start battle with NPC
+                this.startNPCBattle(npc);
+            } else if (npc.dialogue && npc.dialogue.length > 0) {
+                // Show dialogue
+                this.dialogueBox.show(npc.dialogue);
+                this.state = CONSTANTS.STATES.DIALOGUE;
+            }
+        }
+    }
+
     startBattle() {
+        if (!this.currentMap || this.player.party.length === 0) return;
+
         const wildTrain = this.currentMap.getRandomEncounter();
         console.log(`Wild ${wildTrain.species.name} appeared!`);
 
         this.battle = new Battle([...this.player.party], [wildTrain], true);
         this.state = CONSTANTS.STATES.BATTLE;
+    }
+
+    startNPCBattle(npc) {
+        console.log(`Battle with ${npc.name}!`);
+
+        // Create trainer's party from their data
+        const enemyParty = npc.party.map(data => {
+            return new Train(data.speciesId, data.level);
+        });
+
+        this.battle = new Battle([...this.player.party], enemyParty, false);
+        this.state = CONSTANTS.STATES.BATTLE;
+
+        // Mark NPC as battled
+        npc.defeated = true;
+
+        // Award badge if gym leader
+        if (npc.type === 'gym_leader' && npc.badge) {
+            this.battle.onVictory = () => {
+                this.player.earnBadge(npc.badge);
+                console.log(`Earned ${npc.badge}!`);
+            };
+        }
     }
 
     render() {
@@ -177,6 +286,10 @@ class Game {
             case CONSTANTS.STATES.MENU:
                 this.renderMenu();
                 break;
+
+            case CONSTANTS.STATES.DIALOGUE:
+                this.renderDialogue();
+                break;
         }
     }
 
@@ -185,14 +298,23 @@ class Game {
     }
 
     renderOverworld() {
-        // Draw map
-        this.graphics.drawMap(this.currentMap);
+        if (!this.currentMap) return;
+
+        // Draw map with camera
+        this.graphics.drawMap(this.currentMap, this.graphics.camera);
+
+        // Draw NPCs
+        for (const npc of this.currentMap.npcs) {
+            this.graphics.drawNPC(npc, this.graphics.camera);
+        }
 
         // Draw player
-        this.graphics.drawPlayer(this.player);
+        this.graphics.drawPlayer(this.player, this.graphics.camera);
 
         // Draw HUD
-        this.renderOverworldHUD();
+        if (this.player.party.length > 0) {
+            this.renderOverworldHUD();
+        }
     }
 
     renderOverworldHUD() {
@@ -233,7 +355,7 @@ class Game {
             this.ctx.strokeRect(hpBarX, hpBarY, hpBarWidth, hpBarHeight);
         }
 
-        // Steps counter
+        // Badges counter
         this.ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
         this.ctx.fillRect(20, 700, 200, 40);
         this.ctx.strokeStyle = CONSTANTS.COLORS.BLACK;
@@ -242,7 +364,7 @@ class Game {
 
         this.ctx.fillStyle = CONSTANTS.COLORS.BLACK;
         this.ctx.font = '14px monospace';
-        this.ctx.fillText(`Steps: ${this.stepCounter}`, 30, 725);
+        this.ctx.fillText(`Badges: ${this.player.badgeCount}/8`, 30, 725);
     }
 
     renderBattle() {
@@ -272,6 +394,17 @@ class Game {
         );
     }
 
+    renderDialogue() {
+        // Draw overworld in background
+        this.renderOverworld();
+
+        // Draw dialogue box on top
+        const dialogue = this.dialogueBox.getCurrentDialogue();
+        if (dialogue) {
+            this.graphics.drawDialogue(dialogue);
+        }
+    }
+
     save() {
         if (this.player) {
             const saveData = {
@@ -293,6 +426,7 @@ class Game {
 
         if (saveData && saveData.version === CONSTANTS.VERSION) {
             this.player = Player.fromJSON(saveData.player);
+            this.currentMap = this.maps[this.player.currentMap];
             this.state = CONSTANTS.STATES.OVERWORLD;
             console.log('Game loaded!');
             return true;
@@ -329,6 +463,7 @@ class Game {
             // Validate save data
             if (saveData && saveData.version === CONSTANTS.VERSION && saveData.player) {
                 this.player = Player.fromJSON(saveData.player);
+                this.currentMap = this.maps[this.player.currentMap];
                 this.state = CONSTANTS.STATES.OVERWORLD;
 
                 // Also save to localStorage
