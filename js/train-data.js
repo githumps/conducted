@@ -202,7 +202,43 @@ const TRAIN_SPECIES = {
     26: { id: 26, name: "Raitram", types: ["ELECTRIC"], baseStats: { hp: 60, attack: 90, defense: 55, speed: 110, special: 90 }, learnset: [{ level: 1, move: "Thunder Shock" }], evolution: null, catchRate: 75, expYield: 218 },
 };
 
-// Generate remaining trains (27-151) with procedural generation
+// Clever train names for all 151 trains!
+const TRAIN_NAMES = {
+    27: "Haztrak", 28: "Dynamini", 29: "Amperoad", 30: "Megawattage",
+    31: "Levitot", 32: "Magline", 33: "Teleporth", 34: "Brawlcar",
+    35: "Combattery", 36: "Championtrak", 37: "Chilldren", 38: "Frostline",
+    39: "Glaciator", 40: "Spookcar", 41: "Phantomotive", 42: "Spectrailer",
+    43: "Pebbleway", 44: "Bouldroad", 45: "Mountaineer", 46: "Wyrmcar",
+    47: "Dracotrack", 48: "Leviathan", 49: "Shadowline", 50: "Eclipser",
+    51: "Nightmarail", 52: "Tinytank", 53: "Armoroad", 54: "Warfortress",
+    55: "Twinkleway", 56: "Starline", 57: "Celestrain", 58: "Commutot",
+    59: "Routiner", 60: "Metropolis", 61: "Chronocart", 62: "Spatialway",
+    63: "Gravitrak", 64: "Quantumline", 65: "Nucleon", 66: "Fusioneer",
+    67: "Hyperloop", 68: "Subwayvern", 69: "Aeropress", 70: "Marinetrain",
+    71: "Bulleter", 72: "Shinkanstrike", 73: "Orientalist", 74: "Transiberian",
+    75: "Eurosteam", 76: "Amtraction", 77: "Cargoplex", 78: "Coalburner",
+    79: "Oilslick", 80: "Grainery", 81: "Lumberyard", 82: "Ironcross",
+    83: "Goldrusher", 84: "Armordillo", 85: "Peaceliner", 86: "Hospitrain",
+    87: "Schoolbus", 88: "Firetruck", 89: "Policar", 90: "Ambulanche",
+    91: "Tramsit", 92: "Cableway", 93: "Funicular", 94: "Monorider",
+    95: "Dualrail", 96: "Multicart", 97: "Unitrain", 98: "Omnibus",
+    99: "Versatile", 100: "Transformotive", 101: "Heritager", 102: "Vintager",
+    103: "Modernia", 104: "Futurist", 105: "Pionear", 106: "Innovator",
+    107: "Classique", 108: "Luxuria", 109: "Regalia", 110: "Excelsior",
+    111: "Primeridian", 112: "Terminus", 113: "Junction", 114: "Switchback",
+    115: "Sidetrack", 116: "Mainliner", 117: "Branchway", 118: "Spurline",
+    119: "Loopback", 120: "Railyard", 121: "Stationmaster", 122: "Conductor",
+    123: "Enginear", 124: "Brakeman", 125: "Signaler", 126: "Switchman",
+    127: "Flagman", 128: "Porterway", 129: "Ticketron", 130: "Schedular",
+    131: "Horologium", 132: "Whistler", 133: "Bellringer", 134: "Lamplight",
+    135: "Semafor", 136: "Telegraf", 137: "Radiotrain", 138: "Cellular",
+    139: "Satellink", 140: "Networker", 141: "Steelwheel", 142: "Ironcoupler",
+    143: "Bronzebolt", 144: "Silverstream", 145: "Goldtrak", 146: "Platinumline",
+    147: "Diamondexpress", 148: "Crystalline", 149: "Mythrilway", 150: "Adamantrain",
+    151: "MEGALOCOMOTIVE"
+};
+
+// Generate remaining trains (27-151) with clever names!
 for (let i = 27; i <= 151; i++) {
     const types = [Utils.randomChoice(CONSTANTS.TYPES)];
     if (Math.random() > 0.7) {
@@ -211,7 +247,7 @@ for (let i = 27; i <= 151; i++) {
 
     TRAIN_SPECIES[i] = {
         id: i,
-        name: `Train${String(i).padStart(3, '0')}`,
+        name: TRAIN_NAMES[i] || `Train${String(i).padStart(3, '0')}`,
         types: types,
         baseStats: {
             hp: Utils.randomInt(30, 120),
