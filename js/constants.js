@@ -36,6 +36,7 @@ const CONSTANTS = {
     STATES: {
         TITLE: 'title',
         INTRO: 'intro',
+        STARTER_SELECTION: 'starter_selection',
         OVERWORLD: 'overworld',
         BATTLE: 'battle',
         MENU: 'menu',

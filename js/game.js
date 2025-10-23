@@ -19,6 +19,10 @@ class Game {
         this.battle = null;
         this.dialogueBox = new DialogueBox();
 
+        // Intro and starter selection
+        this.introScene = null;
+        this.starterSelection = null;
+
         // Timing
         this.stepCounter = 0;
         this.encounterCooldown = 0;
@@ -38,31 +42,25 @@ class Game {
     newGame() {
         this.player = new Player();
 
-        // Give player a starter train (for testing - will add proper selection later)
-        const starterTrain = new Train(1, 5); // Steamini level 5
-        this.player.addTrain(starterTrain);
-        this.player.hasStarterTrain = true;
+        // Start with intro sequence instead of directly giving starter
+        this.introScene = new IntroScene();
+        this.state = CONSTANTS.STATES.INTRO;
 
-        this.currentMap = this.maps[this.player.currentMap];
-
-        if (!this.currentMap) {
-            console.error('Map not found:', this.player.currentMap);
-            this.currentMap = this.maps['piston_town'];
-        }
-
-        this.state = CONSTANTS.STATES.OVERWORLD;
-        this.stepCounter = 0;
-
-        console.log('New game started!');
-        console.log('Starting location:', this.player.currentMap);
-        console.log('Player position:', this.player.x, this.player.y);
-        console.log('Starter train:', starterTrain.species.name);
+        console.log('New game started! Beginning intro sequence...');
     }
 
     update(deltaTime) {
         switch (this.state) {
             case CONSTANTS.STATES.TITLE:
                 this.updateTitle();
+                break;
+
+            case CONSTANTS.STATES.INTRO:
+                this.updateIntro();
+                break;
+
+            case CONSTANTS.STATES.STARTER_SELECTION:
+                this.updateStarterSelection();
                 break;
 
             case CONSTANTS.STATES.OVERWORLD:
@@ -93,6 +91,79 @@ class Game {
 
         if (action === 'a' || action === 'start') {
             this.newGame();
+        }
+    }
+
+    updateIntro() {
+        const action = this.input.getAction();
+
+        if (action === 'a') {
+            if (this.introScene) {
+                this.introScene.advance();
+
+                if (this.introScene.isComplete()) {
+                    // Intro is complete, move to starter selection
+                    this.starterSelection = new StarterSelection();
+                    this.state = CONSTANTS.STATES.STARTER_SELECTION;
+                    console.log('Intro complete! Moving to starter selection...');
+                }
+            }
+        }
+    }
+
+    updateStarterSelection() {
+        const action = this.input.getAction();
+
+        if (!this.starterSelection) return;
+
+        // Handle different phases of starter selection
+        if (this.starterSelection.phase === 'intro') {
+            // Pre-selection dialogue
+            if (action === 'a') {
+                this.starterSelection.advanceIntro();
+            }
+        } else if (this.starterSelection.phase === 'selection') {
+            // Selecting starter
+            if (action === 'left') {
+                this.starterSelection.moveSelection('left');
+            } else if (action === 'right') {
+                this.starterSelection.moveSelection('right');
+            } else if (action === 'a') {
+                // Confirm selection
+                const starterTrain = this.starterSelection.confirm();
+                this.player.addTrain(starterTrain);
+
+                // Give player starting items
+                this.player.items.pokeball = 5;  // Trainballs
+                this.player.items.potion = 2;     // Potions
+
+                this.starterSelection.phase = 'post-selection';
+                console.log(`Selected ${starterTrain.species.name}!`);
+            }
+        } else if (this.starterSelection.phase === 'post-selection') {
+            // Post-selection dialogue
+            if (action === 'a') {
+                const isComplete = this.starterSelection.advancePostSelection();
+
+                if (isComplete) {
+                    // All dialogue complete, transition to overworld
+                    this.player.hasStarterTrain = true;
+                    this.player.metProfessor = true;
+
+                    this.currentMap = this.maps[this.player.currentMap];
+                    if (!this.currentMap) {
+                        console.error('Map not found:', this.player.currentMap);
+                        this.currentMap = this.maps['piston_town'];
+                    }
+
+                    this.state = CONSTANTS.STATES.OVERWORLD;
+                    this.stepCounter = 0;
+
+                    console.log('Starting overworld!');
+                    console.log('Starting location:', this.player.currentMap);
+                    console.log('Player position:', this.player.x, this.player.y);
+                }
+            }
         }
     }
 
@@ -275,6 +346,14 @@ class Game {
                 this.renderTitle();
                 break;
 
+            case CONSTANTS.STATES.INTRO:
+                this.renderIntro();
+                break;
+
+            case CONSTANTS.STATES.STARTER_SELECTION:
+                this.renderStarterSelection();
+                break;
+
             case CONSTANTS.STATES.OVERWORLD:
                 this.renderOverworld();
                 break;
@@ -295,6 +374,146 @@ class Game {
 
     renderTitle() {
         this.graphics.drawTitleScreen();
+    }
+
+    renderIntro() {
+        // Dark background
+        this.ctx.fillStyle = '#1A1A28';
+        this.ctx.fillRect(0, 0, CONSTANTS.CANVAS_WIDTH, CONSTANTS.CANVAS_HEIGHT);
+
+        // Display current dialogue
+        if (this.introScene) {
+            const dialogue = this.introScene.getCurrentDialogue();
+            if (dialogue) {
+                this.graphics.drawDialogue(dialogue);
+            }
+        }
+    }
+
+    renderStarterSelection() {
+        if (!this.starterSelection) return;
+
+        // Background
+        this.ctx.fillStyle = '#2A3B52';
+        this.ctx.fillRect(0, 0, CONSTANTS.CANVAS_WIDTH, CONSTANTS.CANVAS_HEIGHT);
+
+        if (this.starterSelection.phase === 'intro') {
+            // Show pre-selection dialogue
+            const dialogue = this.starterSelection.getCurrentIntroDialogue();
+            if (dialogue) {
+                this.graphics.drawDialogue(dialogue);
+            }
+        } else if (this.starterSelection.phase === 'selection') {
+            // Show starter selection UI
+            this.renderStarterChoices();
+        } else if (this.starterSelection.phase === 'post-selection') {
+            // Show post-selection dialogue
+            const dialogue = this.starterSelection.getCurrentPostDialogue();
+            if (dialogue) {
+                this.graphics.drawDialogue(dialogue);
+            }
+        }
+    }
+
+    renderStarterChoices() {
+        if (!this.starterSelection) return;
+
+        // Title
+        this.ctx.fillStyle = '#FFD700';
+        this.ctx.font = 'bold 48px monospace';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('Choose Your Partner!', CONSTANTS.CANVAS_WIDTH / 2, 80);
+
+        // Draw three starter "eggs" / boxes
+        const starters = this.starterSelection.starters;
+        const boxWidth = 240;
+        const boxHeight = 320;
+        const spacing = 40;
+        const totalWidth = (boxWidth * 3) + (spacing * 2);
+        const startX = (CONSTANTS.CANVAS_WIDTH - totalWidth) / 2;
+        const y = 150;
+
+        for (let i = 0; i < starters.length; i++) {
+            const x = startX + (i * (boxWidth + spacing));
+            const starter = starters[i];
+            const isSelected = (i === this.starterSelection.selection);
+
+            // Box background
+            if (isSelected) {
+                this.ctx.fillStyle = 'rgba(255, 215, 0, 0.3)';
+                this.ctx.strokeStyle = '#FFD700';
+                this.ctx.lineWidth = 6;
+            } else {
+                this.ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+                this.ctx.strokeStyle = '#FFFFFF';
+                this.ctx.lineWidth = 3;
+            }
+
+            this.ctx.fillRect(x, y, boxWidth, boxHeight);
+            this.ctx.strokeRect(x, y, boxWidth, boxHeight);
+
+            // Starter "egg" representation (placeholder - simple colored circle)
+            const eggCenterX = x + boxWidth / 2;
+            const eggCenterY = y + 80;
+            const eggRadius = 50;
+
+            // Draw egg with type-based color
+            const typeColors = {
+                'STEAM': '#8B5A3C',
+                'ELECTRIC': '#FFE55C',
+                'DIESEL': '#5C4428'
+            };
+
+            this.ctx.fillStyle = typeColors[starter.types[0]] || '#888888';
+            this.ctx.beginPath();
+            this.ctx.arc(eggCenterX, eggCenterY, eggRadius, 0, Math.PI * 2);
+            this.ctx.fill();
+
+            // Draw highlight on egg
+            this.ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            this.ctx.beginPath();
+            this.ctx.arc(eggCenterX - 15, eggCenterY - 15, 20, 0, Math.PI * 2);
+            this.ctx.fill();
+
+            // Starter name
+            this.ctx.fillStyle = isSelected ? '#FFD700' : '#FFFFFF';
+            this.ctx.font = 'bold 24px monospace';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText(starter.displayName, eggCenterX, y + 170);
+
+            // Type
+            this.ctx.font = '16px monospace';
+            this.ctx.fillText(`Type: ${starter.types[0]}`, eggCenterX, y + 200);
+        }
+
+        // Description box at bottom
+        const currentStarter = this.starterSelection.getCurrentStarter();
+        const descX = 50;
+        const descY = 520;
+        const descWidth = 860;
+        const descHeight = 280;
+
+        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+        this.ctx.fillRect(descX, descY, descWidth, descHeight);
+        this.ctx.strokeStyle = '#000000';
+        this.ctx.lineWidth = 4;
+        this.ctx.strokeRect(descX, descY, descWidth, descHeight);
+
+        // Description text
+        this.ctx.fillStyle = '#000000';
+        this.ctx.font = '18px monospace';
+        this.ctx.textAlign = 'left';
+
+        const lines = Utils.wrapText(currentStarter.description, descWidth - 40, this.ctx, 18);
+        for (let i = 0; i < lines.length; i++) {
+            this.ctx.fillText(lines[i], descX + 20, descY + 40 + i * 28);
+        }
+
+        // Instructions
+        this.ctx.fillStyle = '#FFD700';
+        this.ctx.font = 'bold 20px monospace';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('Use ← → to select, press A to confirm', CONSTANTS.CANVAS_WIDTH / 2, descY + descHeight - 20);
     }
 
     renderOverworld() {

@@ -13,11 +13,11 @@ class Player {
         // Party - empty until starter selection
         this.party = [];
 
-        // Inventory
+        // Inventory - empty until starter selection
         this.items = {
-            potion: 5,
+            potion: 0,
             super_potion: 0,
-            pokeball: 5,
+            pokeball: 0,  // Will receive 5 Trainballs after starter selection
             train_ticket: 1
         };
 
