@@ -452,38 +452,22 @@ class Game {
             this.ctx.fillRect(x, y, boxWidth, boxHeight);
             this.ctx.strokeRect(x, y, boxWidth, boxHeight);
 
-            // Starter "egg" representation (placeholder - simple colored circle)
-            const eggCenterX = x + boxWidth / 2;
-            const eggCenterY = y + 80;
-            const eggRadius = 50;
+            // Draw cute baby train sprite!
+            const trainX = x + (boxWidth - 100) / 2;
+            const trainY = y + 40;
 
-            // Draw egg with type-based color
-            const typeColors = {
-                'STEAM': '#8B5A3C',
-                'ELECTRIC': '#FFE55C',
-                'DIESEL': '#5C4428'
-            };
+            // Draw the actual train sprite (all starters are level 5, so they're babies)
+            this.graphics.drawCuteTrainSprite(starter.id, 5, trainX, trainY, 100);
 
-            this.ctx.fillStyle = typeColors[starter.types[0]] || '#888888';
-            this.ctx.beginPath();
-            this.ctx.arc(eggCenterX, eggCenterY, eggRadius, 0, Math.PI * 2);
-            this.ctx.fill();
-
-            // Draw highlight on egg
-            this.ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-            this.ctx.beginPath();
-            this.ctx.arc(eggCenterX - 15, eggCenterY - 15, 20, 0, Math.PI * 2);
-            this.ctx.fill();
-
-            // Starter name
+            // Starter name (below the train sprite)
             this.ctx.fillStyle = isSelected ? '#FFD700' : '#FFFFFF';
             this.ctx.font = 'bold 24px monospace';
             this.ctx.textAlign = 'center';
-            this.ctx.fillText(starter.displayName, eggCenterX, y + 170);
+            this.ctx.fillText(starter.displayName, x + boxWidth / 2, y + 170);
 
             // Type
             this.ctx.font = '16px monospace';
-            this.ctx.fillText(`Type: ${starter.types[0]}`, eggCenterX, y + 200);
+            this.ctx.fillText(`Type: ${starter.types[0]}`, x + boxWidth / 2, y + 200);
         }
 
         // Description box at bottom

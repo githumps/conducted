@@ -283,7 +283,343 @@ class Graphics {
         this.ctx.fillRect(x + size * 0.3, y + size * 0.5, size * 0.4, size * 0.5);
     }
 
+    /**
+     * Draw a cute train sprite based on species and evolution stage
+     */
+    drawCuteTrainSprite(speciesId, level, x, y, size = 100) {
+        const species = TRAIN_SPECIES[speciesId];
+        if (!species) return;
+
+        const ctx = this.ctx;
+        ctx.save();
+
+        // Determine evolution stage (baby, teen, adult)
+        const evoStage = this.getEvolutionStage(species, level);
+
+        // Scale based on evolution stage
+        const scale = evoStage === 'baby' ? 0.7 : evoStage === 'teen' ? 0.85 : 1.0;
+        const trainSize = size * scale;
+
+        // Center the sprite
+        const centerX = x + (size - trainSize) / 2;
+        const centerY = y + (size - trainSize) / 2;
+
+        // Draw based on type
+        const type = species.types[0];
+
+        if (type === 'STEAM') {
+            this.drawSteamTrain(centerX, centerY, trainSize, evoStage);
+        } else if (type === 'ELECTRIC') {
+            this.drawElectricTrain(centerX, centerY, trainSize, evoStage);
+        } else if (type === 'DIESEL') {
+            this.drawDieselTrain(centerX, centerY, trainSize, evoStage);
+        } else {
+            this.drawGenericTrain(centerX, centerY, trainSize, evoStage, CONSTANTS.TYPE_COLORS[type]);
+        }
+
+        ctx.restore();
+    }
+
+    getEvolutionStage(species, level) {
+        if (!species.evolution) return 'adult'; // Fully evolved
+        if (level < species.evolution.level) return 'baby';
+
+        // Check if there's a second evolution
+        const nextSpecies = TRAIN_SPECIES[species.evolution.evolvesTo];
+        if (nextSpecies && nextSpecies.evolution && level < nextSpecies.evolution.level) {
+            return 'teen';
+        }
+        return 'adult';
+    }
+
+    drawSteamTrain(x, y, size, stage) {
+        const ctx = this.ctx;
+
+        // Colors
+        const bodyColor = stage === 'baby' ? '#8B7355' : stage === 'teen' ? '#654321' : '#4A3020';
+        const accentColor = stage === 'baby' ? '#FFD700' : '#C0C0C0';
+        const smokeColor = '#888888';
+
+        // Main body (rounded boiler)
+        ctx.fillStyle = bodyColor;
+        ctx.beginPath();
+        ctx.ellipse(x + size * 0.5, y + size * 0.55, size * 0.35, size * 0.25, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Cab (driver compartment)
+        ctx.fillStyle = '#654321';
+        ctx.fillRect(x + size * 0.65, y + size * 0.35, size * 0.25, size * 0.35);
+
+        // Cab window (cute!)
+        ctx.fillStyle = '#87CEEB';
+        ctx.fillRect(x + size * 0.70, y + size * 0.40, size * 0.15, size * 0.12);
+
+        // Smokestack
+        const stackHeight = stage === 'baby' ? 0.2 : stage === 'teen' ? 0.25 : 0.3;
+        ctx.fillStyle = '#2C2C2C';
+        ctx.fillRect(x + size * 0.35, y + size * 0.25, size * 0.12, size * stackHeight);
+
+        // Smoke puffs (cute!)
+        if (stage === 'baby') {
+            ctx.fillStyle = smokeColor;
+            ctx.globalAlpha = 0.6;
+            ctx.beginPath();
+            ctx.arc(x + size * 0.41, y + size * 0.18, size * 0.08, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1.0;
+        } else {
+            // Bigger smoke for evolved forms
+            ctx.fillStyle = smokeColor;
+            ctx.globalAlpha = 0.6;
+            ctx.beginPath();
+            ctx.arc(x + size * 0.41, y + size * 0.15, size * 0.10, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(x + size * 0.38, y + size * 0.08, size * 0.08, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1.0;
+        }
+
+        // Wheels
+        const wheelCount = stage === 'baby' ? 2 : stage === 'teen' ? 3 : 4;
+        const wheelRadius = size * 0.08;
+        const wheelY = y + size * 0.75;
+
+        for (let i = 0; i < wheelCount; i++) {
+            const wheelX = x + size * (0.25 + i * 0.15);
+
+            // Wheel rim
+            ctx.fillStyle = '#2C2C2C';
+            ctx.beginPath();
+            ctx.arc(wheelX, wheelY, wheelRadius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Hub
+            ctx.fillStyle = accentColor;
+            ctx.beginPath();
+            ctx.arc(wheelX, wheelY, wheelRadius * 0.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Cute face on the front!
+        if (stage === 'baby') {
+            // Big cute eyes
+            ctx.fillStyle = '#FFFFFF';
+            ctx.beginPath();
+            ctx.arc(x + size * 0.25, y + size * 0.48, size * 0.06, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#000000';
+            ctx.beginPath();
+            ctx.arc(x + size * 0.25, y + size * 0.48, size * 0.03, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Smile
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(x + size * 0.25, y + size * 0.55, size * 0.05, 0, Math.PI, false);
+            ctx.stroke();
+        }
+    }
+
+    drawElectricTrain(x, y, size, stage) {
+        const ctx = this.ctx;
+
+        // Colors - sleek and futuristic
+        const bodyColor = stage === 'baby' ? '#FFE55C' : stage === 'teen' ? '#F8D030' : '#E0B020';
+        const accentColor = stage === 'baby' ? '#87CEEB' : '#4169E1';
+        const lightningColor = '#FFD700';
+
+        // Main body (streamlined)
+        ctx.fillStyle = bodyColor;
+        ctx.beginPath();
+        ctx.moveTo(x + size * 0.2, y + size * 0.5);
+        ctx.lineTo(x + size * 0.85, y + size * 0.5);
+        ctx.lineTo(x + size * 0.9, y + size * 0.55);
+        ctx.lineTo(x + size * 0.9, y + size * 0.7);
+        ctx.lineTo(x + size * 0.2, y + size * 0.7);
+        ctx.closePath();
+        ctx.fill();
+
+        // Nose cone (pointed front)
+        ctx.fillStyle = accentColor;
+        ctx.beginPath();
+        ctx.moveTo(x + size * 0.85, y + size * 0.5);
+        ctx.lineTo(x + size * 0.98, y + size * 0.6);
+        ctx.lineTo(x + size * 0.9, y + size * 0.7);
+        ctx.closePath();
+        ctx.fill();
+
+        // Pantograph (power collector on top)
+        ctx.strokeStyle = '#2C2C2C';
+        ctx.lineWidth = stage === 'baby' ? 2 : 3;
+        ctx.beginPath();
+        ctx.moveTo(x + size * 0.5, y + size * 0.5);
+        ctx.lineTo(x + size * 0.45, y + size * 0.35);
+        ctx.lineTo(x + size * 0.55, y + size * 0.35);
+        ctx.stroke();
+
+        // Lightning bolt effect
+        ctx.fillStyle = lightningColor;
+        ctx.beginPath();
+        ctx.moveTo(x + size * 0.5, y + size * 0.3);
+        ctx.lineTo(x + size * 0.48, y + size * 0.38);
+        ctx.lineTo(x + size * 0.51, y + size * 0.38);
+        ctx.lineTo(x + size * 0.49, y + size * 0.44);
+        ctx.lineTo(x + size * 0.52, y + size * 0.35);
+        ctx.lineTo(x + size * 0.50, y + size * 0.35);
+        ctx.closePath();
+        ctx.fill();
+
+        // Windows
+        ctx.fillStyle = '#4A4A4A';
+        const windowCount = stage === 'baby' ? 2 : stage === 'teen' ? 3 : 4;
+        for (let i = 0; i < windowCount; i++) {
+            ctx.fillRect(x + size * (0.3 + i * 0.12), y + size * 0.54, size * 0.08, size * 0.08);
+        }
+
+        // Wheels (smaller, more aerodynamic)
+        const wheelRadius = size * 0.06;
+        const wheelY = y + size * 0.73;
+
+        for (let i = 0; i < 3; i++) {
+            const wheelX = x + size * (0.3 + i * 0.2);
+
+            ctx.fillStyle = '#4169E1';
+            ctx.beginPath();
+            ctx.arc(wheelX, wheelY, wheelRadius, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = lightningColor;
+            ctx.beginPath();
+            ctx.arc(wheelX, wheelY, wheelRadius * 0.4, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Cute headlight/eyes
+        if (stage === 'baby') {
+            ctx.fillStyle = '#FFFF00';
+            ctx.beginPath();
+            ctx.arc(x + size * 0.92, y + size * 0.58, size * 0.04, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    drawDieselTrain(x, y, size, stage) {
+        const ctx = this.ctx;
+
+        // Colors - robust and industrial
+        const bodyColor = stage === 'baby' ? '#8B7355' : stage === 'teen' ? '#5C4428' : '#3C2818';
+        const stripeColor = stage === 'baby' ? '#FF6B6B' : '#DC143C';
+        const exhaustColor = '#4A4A4A';
+
+        // Main body (boxy locomotive)
+        ctx.fillStyle = bodyColor;
+        ctx.fillRect(x + size * 0.25, y + size * 0.4, size * 0.6, size * 0.35);
+
+        // Racing stripe
+        ctx.fillStyle = stripeColor;
+        ctx.fillRect(x + size * 0.25, y + size * 0.55, size * 0.6, size * 0.08);
+
+        // Exhaust stack
+        ctx.fillStyle = exhaustColor;
+        ctx.fillRect(x + size * 0.4, y + size * 0.28, size * 0.1, size * 0.12);
+
+        // Exhaust smoke
+        ctx.fillStyle = '#666666';
+        ctx.globalAlpha = 0.5;
+        ctx.beginPath();
+        ctx.arc(x + size * 0.45, y + size * 0.22, size * 0.06, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
+
+        // Cab
+        ctx.fillStyle = '#2C2C2C';
+        ctx.fillRect(x + size * 0.65, y + size * 0.35, size * 0.2, size * 0.25);
+
+        // Cab windows
+        ctx.fillStyle = '#87CEEB';
+        ctx.fillRect(x + size * 0.68, y + size * 0.40, size * 0.14, size * 0.10);
+
+        // Grill/front
+        ctx.fillStyle = '#696969';
+        ctx.fillRect(x + size * 0.23, y + size * 0.45, size * 0.05, size * 0.25);
+
+        // Wheels (big and sturdy)
+        const wheelRadius = size * 0.09;
+        const wheelY = y + size * 0.78;
+        const wheelCount = stage === 'baby' ? 2 : 3;
+
+        for (let i = 0; i < wheelCount; i++) {
+            const wheelX = x + size * (0.35 + i * 0.18);
+
+            // Wheel
+            ctx.fillStyle = '#2C2C2C';
+            ctx.beginPath();
+            ctx.arc(wheelX, wheelY, wheelRadius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Hub
+            ctx.fillStyle = stripeColor;
+            ctx.beginPath();
+            ctx.arc(wheelX, wheelY, wheelRadius * 0.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Spokes
+            ctx.strokeStyle = stripeColor;
+            ctx.lineWidth = 2;
+            for (let j = 0; j < 4; j++) {
+                ctx.beginPath();
+                ctx.moveTo(wheelX, wheelY);
+                const angle = (j * Math.PI / 2);
+                ctx.lineTo(wheelX + Math.cos(angle) * wheelRadius * 0.7, wheelY + Math.sin(angle) * wheelRadius * 0.7);
+                ctx.stroke();
+            }
+        }
+
+        // Cute headlight (baby only)
+        if (stage === 'baby') {
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.arc(x + size * 0.23, y + size * 0.58, size * 0.04, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    drawGenericTrain(x, y, size, stage, color) {
+        const ctx = this.ctx;
+
+        // Simple train for other types
+        ctx.fillStyle = color || '#888888';
+        ctx.fillRect(x + size * 0.3, y + size * 0.45, size * 0.5, size * 0.3);
+
+        // Windows
+        ctx.fillStyle = '#4A4A4A';
+        ctx.fillRect(x + size * 0.4, y + size * 0.5, size * 0.1, size * 0.1);
+        ctx.fillRect(x + size * 0.6, y + size * 0.5, size * 0.1, size * 0.1);
+
+        // Wheels
+        const wheelRadius = size * 0.07;
+        const wheelY = y + size * 0.78;
+
+        for (let i = 0; i < 2; i++) {
+            ctx.fillStyle = '#2C2C2C';
+            ctx.beginPath();
+            ctx.arc(x + size * (0.4 + i * 0.25), wheelY, wheelRadius, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
     drawEnhancedTrainSprite(train, x, y, isPlayer) {
+        const size = 150; // Larger sprites
+
+        // Use the new cute train sprite system
+        this.drawCuteTrainSprite(train.species.id, train.level, x, y, size);
+    }
+
+    // Keep old function for backward compatibility but update it
+    _drawEnhancedTrainSpriteOld(train, x, y, isPlayer) {
         const size = 150; // Larger sprites
 
         // Get type colors
@@ -629,6 +965,9 @@ class Graphics {
         this.ctx.strokeStyle = CONSTANTS.COLORS.BLACK;
         this.ctx.lineWidth = 4;
         this.ctx.strokeRect(x, y, width, height);
+
+        // IMPORTANT: Reset text alignment to left (fixes floating text bug)
+        this.ctx.textAlign = 'left';
 
         // Speaker name
         if (dialogue.speaker) {
