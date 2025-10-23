@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Quick Status Check</title>
+    <style>
+        body {
+            background: #000;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            padding: 40px;
+            font-size: 18px;
+        }
+        h1 {
+            color: #ffd700;
+            text-align: center;
+            font-size: 36px;
+        }
+        .box {
+            background: #111;
+            border: 2px solid #0f0;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+        }
+        .pass { color: #0f0; }
+        .fail { color: #f00; }
+        .warn { color: #ff0; }
+        button {
+            background: #0f0;
+            color: #000;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 5px;
+            margin: 10px;
+        }
+        button:hover {
+            background: #0ff;
+        }
+        canvas {
+            border: 2px solid #0f0;
+            margin: 20px 0;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚂 Train Battle RPG - Quick Check</h1>
+
+    <div class="box">
+        <h2>Step 1: Is this page loading?</h2>
+        <p class="pass">✓ YES - You can see this text!</p>
+        <p>This means your browser can load HTML files.</p>
+    </div>
+
+    <div class="box">
+        <h2>Step 2: Can we draw on a canvas?</h2>
+        <canvas id="testCanvas" width="400" height="300"></canvas>
+        <p id="canvasResult">Testing...</p>
+    </div>
+
+    <div class="box">
+        <h2>Step 3: Clear your browser cache!</h2>
+        <p class="warn">⚠️ IMPORTANT: You may be seeing an OLD version!</p>
+        <p><strong>Do a HARD REFRESH:</strong></p>
+        <ul>
+            <li><strong>Windows/Linux:</strong> Ctrl + Shift + R</li>
+            <li><strong>Mac:</strong> Cmd + Shift + R</li>
+            <li><strong>Or:</strong> Ctrl + F5</li>
+        </ul>
+        <button onclick="clearEverything()">Clear LocalStorage</button>
+        <p id="clearResult"></p>
+    </div>
+
+    <div class="box">
+        <h2>Step 4: What version do you see?</h2>
+        <p>When you load <strong>index.html</strong>, look at the top.</p>
+        <p>You should see: <span class="pass">VERSION 1.0.1 - Build: 2025-10-23 (Black Screen Fix)</span></p>
+        <p class="warn">If you see VERSION 1.0.0 or nothing, you have the OLD version!</p>
+        <p><strong>Do a HARD REFRESH (Ctrl+Shift+R) to get the new version!</strong></p>
+    </div>
+
+    <div class="box">
+        <h2>Step 5: Ready to play?</h2>
+        <button onclick="window.location.href='index.html'">Launch Game</button>
+        <button onclick="window.location.href='canvas-test.html'">Advanced Test</button>
+    </div>
+
+    <script>
+        // Test canvas rendering
+        const canvas = document.getElementById('testCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Draw gradient background
+        const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        gradient.addColorStop(0, '#1a1a2e');
+        gradient.addColorStop(1, '#16213e');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Draw text
+        ctx.fillStyle = '#FFD700';
+        ctx.font = 'bold 48px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('WORKING!', canvas.width / 2, canvas.height / 2);
+
+        document.getElementById('canvasResult').innerHTML = '<p class="pass">✓ Canvas is working! You should see "WORKING!" above.</p>';
+
+        function clearEverything() {
+            // Clear localStorage
+            localStorage.clear();
+
+            // Clear session storage
+            sessionStorage.clear();
+
+            document.getElementById('clearResult').innerHTML =
+                '<p class="pass">✓ Cleared! Now do a HARD REFRESH (Ctrl+Shift+R)</p>';
+        }
+    </script>
+</body>
+</html>
