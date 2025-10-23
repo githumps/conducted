@@ -102,6 +102,19 @@
             flex: 1;
         }
 
+        .current-stage {
+            background: rgba(255, 215, 0, 0.2);
+            border-radius: 8px;
+            padding: 5px;
+        }
+
+        .evolution-form-name {
+            font-size: 10px;
+            color: #333;
+            font-weight: bold;
+            margin-top: 3px;
+        }
+
         .evolution-stage-label {
             font-size: 11px;
             color: #fff;
@@ -292,39 +305,53 @@
             return canvas.toDataURL();
         }
 
-        // Determine evolution stages for a species
-        function getEvolutionStages(species) {
-            const stages = [];
+        // Find the complete evolution chain for a species
+        function getEvolutionChain(species) {
+            const chain = [];
 
-            // Always show baby form
-            stages.push({ label: 'Baby', level: 5 });
+            // Step 1: Find the baby (base) form by tracing backwards
+            let currentId = species.id;
+            let baseForm = species;
 
-            // If this train evolves, show teen form
-            if (species.evolution) {
-                const midLevel = Math.floor(species.evolution.level / 2) + 3;
-                stages.push({ label: 'Teen', level: midLevel });
-                stages.push({ label: 'Adult', level: species.evolution.level });
-            } else {
-                // Check if this is a middle or final evolution
-                let isEvolved = false;
-                for (let id in TRAIN_SPECIES) {
-                    const s = TRAIN_SPECIES[id];
-                    if (s.evolution && s.evolution.evolvesTo === species.id) {
-                        isEvolved = true;
-                        // This is an evolved form, show teen and adult
-                        stages.push({ label: 'Teen', level: 20 });
-                        stages.push({ label: 'Adult', level: 50 });
-                        break;
-                    }
-                }
-                if (!isEvolved) {
-                    // Final evolution - show all three stages
-                    stages.push({ label: 'Teen', level: 20 });
-                    stages.push({ label: 'Adult', level: 50 });
+            // Trace back to find the baby
+            for (let id in TRAIN_SPECIES) {
+                const s = TRAIN_SPECIES[id];
+                if (s.evolution && s.evolution.evolvesTo === currentId) {
+                    baseForm = s;
+                    currentId = s.id;
+                    // Keep tracing back
+                    id = 0; // Reset loop to check again
                 }
             }
 
-            return stages;
+            // Step 2: Build the chain forward from baby
+            chain.push({ id: baseForm.id, name: baseForm.name, stage: 'Baby', level: 5 });
+
+            let current = baseForm;
+            while (current.evolution) {
+                const nextId = current.evolution.evolvesTo;
+                const nextSpecies = TRAIN_SPECIES[nextId];
+
+                if (nextSpecies) {
+                    // Check if this is the final evolution
+                    if (nextSpecies.evolution) {
+                        chain.push({ id: nextId, name: nextSpecies.name, stage: 'Teen', level: 15 });
+                    } else {
+                        chain.push({ id: nextId, name: nextSpecies.name, stage: 'Adult', level: 50 });
+                    }
+                    current = nextSpecies;
+                } else {
+                    break;
+                }
+            }
+
+            // If only one form (doesn't evolve), still show it properly
+            if (chain.length === 1) {
+                chain[0].stage = 'Adult';
+                chain[0].level = 50;
+            }
+
+            return chain;
         }
 
         // Create train card HTML
@@ -359,14 +386,15 @@
             const stats = species.baseStats;
             const statsText = `HP: ${stats.hp} | ATK: ${stats.attack} | DEF: ${stats.defense}<br>SPD: ${stats.speed} | SPC: ${stats.special}`;
 
-            // Evolution stages
-            const stages = getEvolutionStages(species);
-            const stagesHTML = stages.map(stage => `
-                <div class="evolution-stage">
-                    <div class="evolution-stage-label">${stage.label}</div>
+            // Evolution chain - show complete line with correct labels
+            const evolutionChain = getEvolutionChain(species);
+            const stagesHTML = evolutionChain.map(form => `
+                <div class="evolution-stage ${form.id === species.id ? 'current-stage' : ''}">
+                    <div class="evolution-stage-label">${form.stage}</div>
                     <div class="train-sprite">
-                        <img src="${renderTrainSprite(species.id, stage.level)}" alt="${species.name} ${stage.label}">
+                        <img src="${renderTrainSprite(form.id, form.level)}" alt="${form.name}">
                     </div>
+                    <div class="evolution-form-name">${form.name}</div>
                 </div>
             `).join('');
 
