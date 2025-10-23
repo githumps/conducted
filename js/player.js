@@ -83,7 +83,8 @@ class Player {
 
     update(deltaTime) {
         if (this.isMoving) {
-            this.moveProgress += deltaTime * 4; // Move speed
+            // Smoother movement: 2.5 instead of 4 (was too fast/jumpy)
+            this.moveProgress += deltaTime * 2.5;
 
             if (this.moveProgress >= 1.0) {
                 this.x = this.targetX;

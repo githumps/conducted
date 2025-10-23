@@ -21,7 +21,22 @@ class GameMap {
 
     isWalkable(x, y) {
         const tile = this.getTile(x, y);
-        return tile > 0; // 0 = unwalkable
+
+        // Check for NPCs at this position
+        const npcAtPosition = this.npcs.find(npc => npc.x === x && npc.y === y);
+        if (npcAtPosition) return false;
+
+        // Walkable tiles: GRASS(1), TALL_GRASS(2), PATH(3), RAILS(6), GRAVEYARD(9), SAND(10)
+        // Unwalkable: VOID(0), WATER(4), WALL(5), BUILDING(7), STATION(8), CAVE(11)
+        const walkableTiles = [1, 2, 3, 6, 9, 10];
+        return walkableTiles.includes(tile);
+    }
+
+    isDoor(x, y) {
+        // Check if this tile is a building entrance
+        // Buildings (7) and Stations (8) can have doors
+        const tile = this.getTile(x, y);
+        return tile === 7 || tile === 8;
     }
 
     checkForEncounter() {

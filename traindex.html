@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traindex - All 151 Train Species</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            font-family: 'Courier New', monospace;
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            margin-bottom: 30px;
+            border: 3px solid #ffd700;
+        }
+
+        .header h1 {
+            font-size: 48px;
+            color: #ffd700;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.8);
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 18px;
+            color: #87ceeb;
+        }
+
+        .controls {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .controls input {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: 2px solid #ffd700;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            width: 300px;
+        }
+
+        .controls select {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: 2px solid #ffd700;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            margin-left: 10px;
+        }
+
+        .train-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .train-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 15px;
+            text-align: center;
+            border: 3px solid #2c3e50;
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+        }
+
+        .train-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(255, 215, 0, 0.5);
+            border-color: #ffd700;
+        }
+
+        .train-sprite {
+            width: 120px;
+            height: 120px;
+            margin: 10px auto;
+            position: relative;
+        }
+
+        .train-number {
+            font-size: 14px;
+            color: #888;
+            font-weight: bold;
+        }
+
+        .train-name {
+            font-size: 20px;
+            color: #2c3e50;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+
+        .train-types {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+            margin: 10px 0;
+        }
+
+        .type-badge {
+            padding: 4px 10px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: bold;
+            color: #fff;
+            text-transform: uppercase;
+        }
+
+        .type-STEAM { background: #B0B0B0; }
+        .type-ELECTRIC { background: #F8D030; color: #000; }
+        .type-DIESEL { background: #705848; }
+        .type-MAGLEV { background: #A890F0; }
+        .type-FREIGHT { background: #B8A038; }
+        .type-PASSENGER { background: #A8A878; }
+        .type-NUCLEAR { background: #A040A0; }
+        .type-MONORAIL { background: #A8B820; }
+
+        .train-stats {
+            font-size: 11px;
+            color: #555;
+            margin-top: 8px;
+            line-height: 1.4;
+        }
+
+        .evolution-chain {
+            font-size: 10px;
+            color: #3498db;
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        .back-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            padding: 15px 30px;
+            background: #ffd700;
+            color: #000;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 18px;
+            border: 3px solid #000;
+            transition: all 0.2s;
+        }
+
+        .back-button:hover {
+            background: #ffed4e;
+            transform: scale(1.05);
+        }
+
+        .loading {
+            text-align: center;
+            font-size: 24px;
+            padding: 50px;
+            color: #ffd700;
+        }
+
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-button">← Back to Game</a>
+
+    <div class="header">
+        <h1>🚂 TRAINDEX 🚂</h1>
+        <p>Complete Encyclopedia of All 151 Train Species</p>
+    </div>
+
+    <div class="controls">
+        <input type="text" id="searchBox" placeholder="Search by name or number...">
+        <select id="typeFilter">
+            <option value="">All Types</option>
+            <option value="STEAM">Steam</option>
+            <option value="ELECTRIC">Electric</option>
+            <option value="DIESEL">Diesel</option>
+            <option value="MAGLEV">Maglev</option>
+            <option value="FREIGHT">Freight</option>
+            <option value="PASSENGER">Passenger</option>
+            <option value="NUCLEAR">Nuclear</option>
+            <option value="MONORAIL">Monorail</option>
+        </select>
+    </div>
+
+    <div class="train-grid" id="trainGrid">
+        <div class="loading">Loading all 151 trains...</div>
+    </div>
+
+    <!-- Load game scripts for train data and graphics -->
+    <script src="js/constants.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/train-data.js"></script>
+    <script src="js/moves.js"></script>
+    <script src="js/train.js"></script>
+    <script src="js/world-maps.js"></script>
+    <script src="js/graphics.js"></script>
+
+    <script>
+        // Create a hidden canvas for rendering train sprites
+        const canvas = document.createElement('canvas');
+        canvas.width = 120;
+        canvas.height = 120;
+        const graphics = new Graphics(canvas.getContext('2d'));
+
+        let allTrains = [];
+
+        // Load all train species
+        function loadAllTrains() {
+            allTrains = [];
+            for (let i = 1; i <= 151; i++) {
+                const species = TRAIN_SPECIES[i];
+                if (species) {
+                    allTrains.push(species);
+                }
+            }
+            renderTrainGrid(allTrains);
+        }
+
+        // Render train sprite to canvas and return as data URL
+        function renderTrainSprite(speciesId) {
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw train at level 50 (adult form)
+            graphics.drawCuteTrainSprite(speciesId, 50, 10, 10, 100);
+
+            return canvas.toDataURL();
+        }
+
+        // Create train card HTML
+        function createTrainCard(species) {
+            const card = document.createElement('div');
+            card.className = 'train-card';
+            card.dataset.id = species.id;
+
+            // Get evolution info
+            let evolutionText = '';
+            if (species.evolution) {
+                const nextSpecies = TRAIN_SPECIES[species.evolution.evolvesTo];
+                evolutionText = `Evolves to ${nextSpecies.name} at Lv.${species.evolution.level}`;
+            } else {
+                // Check if this is an evolved form
+                for (let id in TRAIN_SPECIES) {
+                    const s = TRAIN_SPECIES[id];
+                    if (s.evolution && s.evolution.evolvesTo === species.id) {
+                        evolutionText = `Evolved form of ${s.name}`;
+                        break;
+                    }
+                }
+                if (!evolutionText) evolutionText = 'Does not evolve';
+            }
+
+            // Type badges
+            const typeBadges = species.types.map(type =>
+                `<span class="type-badge type-${type}">${type}</span>`
+            ).join('');
+
+            // Stats
+            const stats = species.baseStats;
+            const statsText = `HP: ${stats.hp} | ATK: ${stats.attack} | DEF: ${stats.defense}<br>SPD: ${stats.speed} | SPC: ${stats.special}`;
+
+            card.innerHTML = `
+                <div class="train-number">#${String(species.id).padStart(3, '0')}</div>
+                <div class="train-sprite">
+                    <img src="${renderTrainSprite(species.id)}" alt="${species.name}">
+                </div>
+                <div class="train-name">${species.name}</div>
+                <div class="train-types">${typeBadges}</div>
+                <div class="train-stats">${statsText}</div>
+                <div class="evolution-chain">${evolutionText}</div>
+            `;
+
+            return card;
+        }
+
+        // Render train grid
+        function renderTrainGrid(trains) {
+            const grid = document.getElementById('trainGrid');
+            grid.innerHTML = '';
+
+            if (trains.length === 0) {
+                grid.innerHTML = '<div class="loading">No trains found matching your search.</div>';
+                return;
+            }
+
+            trains.forEach(species => {
+                grid.appendChild(createTrainCard(species));
+            });
+        }
+
+        // Search and filter
+        function filterTrains() {
+            const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+            const typeFilter = document.getElementById('typeFilter').value;
+
+            let filtered = allTrains.filter(species => {
+                const matchesSearch = species.name.toLowerCase().includes(searchTerm) ||
+                                    String(species.id).includes(searchTerm);
+                const matchesType = !typeFilter || species.types.includes(typeFilter);
+                return matchesSearch && matchesType;
+            });
+
+            renderTrainGrid(filtered);
+        }
+
+        // Event listeners
+        document.getElementById('searchBox').addEventListener('input', filterTrains);
+        document.getElementById('typeFilter').addEventListener('change', filterTrains);
+
+        // Load on page load
+        window.addEventListener('load', () => {
+            setTimeout(loadAllTrains, 100); // Small delay to ensure scripts load
+        });
+    </script>
+</body>
+</html>

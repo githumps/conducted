@@ -55,7 +55,33 @@ class Graphics {
         for (let y = startY; y < endY; y++) {
             for (let x = startX; x < endX; x++) {
                 const tile = map.getTile(x, y);
-                this.drawTile(tile, x - startX, y - startY);
+                const screenX = x - startX;
+                const screenY = y - startY;
+
+                this.drawTile(tile, screenX, screenY);
+
+                // Visual hint: highlight map edges with subtle border
+                if (x === 0 || x === map.width - 1 || y === 0 || y === map.height - 1) {
+                    const tileX = screenX * this.tileSize * this.scale;
+                    const tileY = screenY * this.tileSize * this.scale;
+                    const size = this.tileSize * this.scale;
+
+                    this.ctx.strokeStyle = 'rgba(255, 215, 0, 0.3)';
+                    this.ctx.lineWidth = 3;
+                    this.ctx.strokeRect(tileX, tileY, size, size);
+                }
+
+                // Visual hint: highlight building entrances (doors)
+                if (tile === TILE_TYPES.BUILDING || tile === TILE_TYPES.STATION) {
+                    const tileX = screenX * this.tileSize * this.scale;
+                    const tileY = screenY * this.tileSize * this.scale;
+                    const size = this.tileSize * this.scale;
+
+                    // Draw door indicator (pulsing brightness)
+                    const pulse = (Math.sin(Date.now() / 500) + 1) / 2; // 0 to 1
+                    this.ctx.fillStyle = `rgba(255, 215, 0, ${0.2 + pulse * 0.3})`;
+                    this.ctx.fillRect(tileX + size * 0.35, tileY + size * 0.7, size * 0.3, size * 0.25);
+                }
             }
         }
     }
