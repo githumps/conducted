@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Canvas Test</title>
+    <style>
+        body {
+            background: #222;
+            color: #fff;
+            font-family: monospace;
+            padding: 20px;
+        }
+        canvas {
+            border: 2px solid #0f0;
+            display: block;
+            margin: 20px 0;
+        }
+        .pass { color: #0f0; }
+        .fail { color: #f00; }
+    </style>
+</head>
+<body>
+    <h1>Canvas Rendering Test</h1>
+    <div id="output"></div>
+    <canvas id="testCanvas" width="960" height="864"></canvas>
+
+    <script>
+        const output = document.getElementById('output');
+        function log(msg, pass = true) {
+            const div = document.createElement('div');
+            div.className = pass ? 'pass' : 'fail';
+            div.textContent = msg;
+            output.appendChild(div);
+        }
+
+        const canvas = document.getElementById('testCanvas');
+        const ctx = canvas.getContext('2d');
+
+        log('Canvas element: ' + (canvas ? 'FOUND' : 'NOT FOUND'));
+        log('Context: ' + (ctx ? 'FOUND' : 'NOT FOUND'));
+        log('Canvas size: ' + canvas.width + 'x' + canvas.height);
+
+        // Test 1: Fill with solid color
+        log('\n=== Test 1: Solid Fill ===');
+        ctx.fillStyle = '#ff0000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        log('Filled canvas with RED');
+
+        setTimeout(() => {
+            // Test 2: Draw gradient
+            log('\n=== Test 2: Gradient ===');
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#1a1a2e');
+            gradient.addColorStop(1, '#16213e');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            log('Drew gradient background');
+
+            setTimeout(() => {
+                // Test 3: Draw text
+                log('\n=== Test 3: Text ===');
+                ctx.fillStyle = '#FFD700';
+                ctx.font = 'bold 72px monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText('TEST', canvas.width / 2, canvas.height / 2);
+                log('Drew text "TEST"');
+
+                // Now load the actual game
+                log('\n=== Loading Game Scripts ===');
+                loadGameScripts();
+            }, 1000);
+        }, 1000);
+
+        function loadGameScripts() {
+            const scripts = [
+                'js/constants.js',
+                'js/utils.js',
+                'js/train-data.js',
+                'js/moves.js',
+                'js/train.js',
+                'js/battle.js',
+                'js/player.js',
+                'js/map.js',
+                'js/world-maps.js',
+                'js/intro.js',
+                'js/graphics.js',
+                'js/input.js',
+                'js/ui.js',
+                'js/game.js'
+            ];
+
+            let loaded = 0;
+
+            function loadNext() {
+                if (loaded >= scripts.length) {
+                    log('\n=== All Scripts Loaded ===');
+                    testGame();
+                    return;
+                }
+
+                const src = scripts[loaded];
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = () => {
+                    log('✓ ' + src, true);
+                    loaded++;
+                    loadNext();
+                };
+                script.onerror = () => {
+                    log('✗ ' + src, false);
+                    loaded++;
+                    loadNext();
+                };
+                document.body.appendChild(script);
+            }
+
+            loadNext();
+        }
+
+        function testGame() {
+            log('\n=== Creating Game Instance ===');
+            try {
+                const canvas = document.getElementById('testCanvas');
+                const game = new Game(canvas);
+                log('✓ Game created!', true);
+                log('State: ' + game.state, true);
+                log('Maps: ' + Object.keys(game.maps).length, true);
+
+                log('\n=== Test Render ===');
+                game.render();
+                log('✓ render() called', true);
+
+                log('\n=== Starting Game Loop ===');
+                let frames = 0;
+                function loop() {
+                    game.update(0.016);
+                    game.render();
+                    frames++;
+                    if (frames < 60) {
+                        requestAnimationFrame(loop);
+                    } else {
+                        log(`✓ Rendered ${frames} frames!`, true);
+                        log('\nIf you see the title screen above, the game is working!', true);
+                    }
+                }
+                requestAnimationFrame(loop);
+
+            } catch (error) {
+                log('✗ Error: ' + error.message, false);
+                log(error.stack, false);
+            }
+        }
+    </script>
+</body>
+</html>

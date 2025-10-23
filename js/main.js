@@ -63,6 +63,13 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('✅ Train Battle RPG Ready!');
     console.log(`📍 Current state: ${game.state}`);
     console.log('🎮 Press ENTER on the title screen to start!');
+
+    // Update load status indicator
+    const loadStatus = document.getElementById('load-status');
+    if (loadStatus) {
+        loadStatus.style.color = '#10b010';
+        loadStatus.textContent = `Ready! State: ${game.state}`;
+    }
 });
 
 /**
