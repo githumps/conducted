@@ -122,6 +122,14 @@ class Player {
         return false;
     }
 
+    addItem(item, quantity) {
+        if (this.items[item]) {
+            this.items[item] += quantity;
+        } else {
+            this.items[item] = quantity;
+        }
+    }
+
     earnBadge(badgeName) {
         if (!this.badges.includes(badgeName)) {
             this.badges.push(badgeName);

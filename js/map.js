@@ -12,6 +12,18 @@ class GameMap {
         this.npcs = [];
     }
 
+    fillRect(x, y, width, height, tileType) {
+        for (let dy = 0; dy < height; dy++) {
+            for (let dx = 0; dx < width; dx++) {
+                const tx = x + dx;
+                const ty = y + dy;
+                if (tx >= 0 && tx < this.width && ty >= 0 && ty < this.height) {
+                    this.tiles[ty][tx] = tileType;
+                }
+            }
+        }
+    }
+
     getTile(x, y) {
         if (x < 0 || x >= this.width || y < 0 || y >= this.height) {
             return 0; // Wall/border
@@ -26,17 +38,16 @@ class GameMap {
         const npcAtPosition = this.npcs.find(npc => npc.x === x && npc.y === y);
         if (npcAtPosition) return false;
 
-        // Walkable tiles: GRASS(1), TALL_GRASS(2), PATH(3), RAILS(6), GRAVEYARD(9), SAND(10)
+        // Walkable tiles: GRASS(1), TALL_GRASS(2), PATH(3), RAILS(6), GRAVEYARD(9), SAND(10), DOOR(12)
         // Unwalkable: VOID(0), WATER(4), WALL(5), BUILDING(7), STATION(8), CAVE(11)
-        const walkableTiles = [1, 2, 3, 6, 9, 10];
+        const walkableTiles = [1, 2, 3, 6, 9, 10, 12];
         return walkableTiles.includes(tile);
     }
 
     isDoor(x, y) {
         // Check if this tile is a building entrance
-        // Buildings (7) and Stations (8) can have doors
         const tile = this.getTile(x, y);
-        return tile === 7 || tile === 8;
+        return tile === 12;
     }
 
     checkForEncounter() {

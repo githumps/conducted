@@ -6,10 +6,10 @@ const CONSTANTS = {
     // Display settings
     TILE_SIZE: 16,
     SCALE: 3,
-    SCREEN_TILES_X: 20,
-    SCREEN_TILES_Y: 18,
-    CANVAS_WIDTH: 960,
-    CANVAS_HEIGHT: 864,
+    SCREEN_TILES_X: 16,
+    SCREEN_TILES_Y: 14,
+    CANVAS_WIDTH: 768,
+    CANVAS_HEIGHT: 672,
     FPS: 60,
 
     // Game info

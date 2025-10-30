@@ -5,8 +5,8 @@
 class Graphics {
     constructor(ctx) {
         this.ctx = ctx;
-        this.tileSize = 16;
-        this.scale = 3;
+        this.tileSize = CONSTANTS.TILE_SIZE;
+        this.scale = CONSTANTS.SCALE;
 
         // Camera system
         this.camera = {
@@ -18,8 +18,17 @@ class Graphics {
         };
 
         // Screen dimensions in tiles
-        this.screenTilesX = 20;
-        this.screenTilesY = 18;
+        this.screenTilesX = CONSTANTS.SCREEN_TILES_X;
+        this.screenTilesY = CONSTANTS.SCREEN_TILES_Y;
+
+        // Classic Game Boy inspired palette (four tones)
+        this.gbPalette = {
+            lightest: '#E0F8D0',
+            light: '#88C070',
+            dark: '#346856',
+            darkest: '#081820',
+            accent: '#F2DCA3'
+        };
     }
 
     updateCamera(player, map) {
@@ -59,29 +68,6 @@ class Graphics {
                 const screenY = y - startY;
 
                 this.drawTile(tile, screenX, screenY);
-
-                // Visual hint: highlight map edges with subtle border
-                if (x === 0 || x === map.width - 1 || y === 0 || y === map.height - 1) {
-                    const tileX = screenX * this.tileSize * this.scale;
-                    const tileY = screenY * this.tileSize * this.scale;
-                    const size = this.tileSize * this.scale;
-
-                    this.ctx.strokeStyle = 'rgba(255, 215, 0, 0.3)';
-                    this.ctx.lineWidth = 3;
-                    this.ctx.strokeRect(tileX, tileY, size, size);
-                }
-
-                // Visual hint: highlight building entrances (doors)
-                if (tile === TILE_TYPES.BUILDING || tile === TILE_TYPES.STATION) {
-                    const tileX = screenX * this.tileSize * this.scale;
-                    const tileY = screenY * this.tileSize * this.scale;
-                    const size = this.tileSize * this.scale;
-
-                    // Draw door indicator (pulsing brightness)
-                    const pulse = (Math.sin(Date.now() / 500) + 1) / 2; // 0 to 1
-                    this.ctx.fillStyle = `rgba(255, 215, 0, ${0.2 + pulse * 0.3})`;
-                    this.ctx.fillRect(tileX + size * 0.35, tileY + size * 0.7, size * 0.3, size * 0.25);
-                }
             }
         }
     }
@@ -91,58 +77,63 @@ class Graphics {
         const y = screenY * this.tileSize * this.scale;
         const size = this.tileSize * this.scale;
 
-        let color, pattern = null;
+        let color = this.gbPalette.light;
+        let pattern = null;
 
         switch (tileType) {
             case TILE_TYPES.VOID:
-                color = '#000000';
+                color = this.gbPalette.darkest;
                 break;
             case TILE_TYPES.GRASS:
-                color = '#27AE60';
+                color = this.gbPalette.light;
                 pattern = 'grass';
                 break;
             case TILE_TYPES.TALL_GRASS:
-                color = '#1E8449';
+                color = this.gbPalette.dark;
                 pattern = 'tallgrass';
                 break;
             case TILE_TYPES.PATH:
-                color = '#BDC3C7';
+                color = this.gbPalette.accent;
                 pattern = 'path';
                 break;
             case TILE_TYPES.WATER:
-                color = '#3498DB';
+                color = '#6AA0D8';
                 pattern = 'water';
                 break;
             case TILE_TYPES.WALL:
-                color = '#2C3E50';
+                color = this.gbPalette.darkest;
                 pattern = 'wall';
                 break;
             case TILE_TYPES.RAILS:
-                color = '#7F8C8D';
+                color = this.gbPalette.accent;
                 pattern = 'rails';
                 break;
             case TILE_TYPES.BUILDING:
-                color = '#E74C3C';
+                color = '#B06F3C';
                 pattern = 'building';
                 break;
             case TILE_TYPES.STATION:
-                color = '#F39C12';
+                color = '#D8B15C';
                 pattern = 'station';
                 break;
+            case TILE_TYPES.DOOR:
+                color = this.gbPalette.darkest;
+                pattern = 'door';
+                break;
             case TILE_TYPES.GRAVEYARD:
-                color = '#34495E';
+                color = '#556060';
                 pattern = 'graveyard';
                 break;
             case TILE_TYPES.SAND:
-                color = '#F4D03F';
+                color = '#DCC57C';
                 pattern = 'sand';
                 break;
             case TILE_TYPES.CAVE:
-                color = '#1C2833';
+                color = '#2C2F30';
                 pattern = 'cave';
                 break;
             default:
-                color = '#34495E';
+                color = this.gbPalette.dark;
         }
 
         // Base tile
@@ -156,56 +147,95 @@ class Graphics {
     drawTilePattern(pattern, x, y, size) {
         if (!pattern) return;
 
-        const third = size / 3;
-        const quarter = size / 4;
-
         switch (pattern) {
             case 'grass':
-                this.ctx.fillStyle = '#229954';
-                this.ctx.fillRect(x + quarter, y + quarter, 3, 3);
-                this.ctx.fillRect(x + size * 0.7, y + quarter, 3, 3);
-                this.ctx.fillRect(x + size / 2, y + size * 0.7, 3, 3);
+                this.ctx.fillStyle = this.gbPalette.dark;
+                for (let gx = 2; gx < size; gx += 6) {
+                    for (let gy = 2; gy < size; gy += 6) {
+                        this.ctx.fillRect(x + gx, y + gy, 2, 2);
+                    }
+                }
                 break;
 
             case 'tallgrass':
-                this.ctx.fillStyle = '#145A32';
-                for (let i = 0; i < 6; i++) {
-                    const offsetX = (i % 3) * (size / 3) + 5;
-                    const offsetY = Math.floor(i / 3) * (size / 2) + 5;
-                    this.ctx.fillRect(x + offsetX, y + offsetY, 2, 8);
+                this.ctx.fillStyle = this.gbPalette.darkest;
+                for (let gy = 1; gy < size; gy += 4) {
+                    this.ctx.fillRect(x + (gy % 5), y + gy, 2, 6);
                 }
                 break;
 
             case 'path':
-                this.ctx.fillStyle = '#95A5A6';
-                this.ctx.fillRect(x + 5, y + 5, size - 10, 2);
-                this.ctx.fillRect(x + 5, y + size - 7, size - 10, 2);
+                this.ctx.fillStyle = '#BFA56F';
+                for (let gy = 4; gy < size; gy += 6) {
+                    this.ctx.fillRect(x, y + gy, size, 1);
+                }
                 break;
 
             case 'water':
-                this.ctx.fillStyle = '#5DADE2';
-                this.ctx.beginPath();
-                this.ctx.arc(x + size * 0.3, y + size * 0.3, 3, 0, Math.PI * 2);
-                this.ctx.fill();
-                this.ctx.beginPath();
-                this.ctx.arc(x + size * 0.7, y + size * 0.6, 3, 0, Math.PI * 2);
-                this.ctx.fill();
+                this.ctx.fillStyle = '#3F6AA1';
+                for (let gx = 0; gx < size; gx += 4) {
+                    this.ctx.fillRect(x + gx, y + ((gx / 2) % size), 3, 1);
+                }
                 break;
 
             case 'rails':
-                this.ctx.fillStyle = '#5D6D7E';
-                this.ctx.fillRect(x + size * 0.3, y, 4, size);
-                this.ctx.fillRect(x + size * 0.6, y, 4, size);
-                this.ctx.fillStyle = '#2C3E50';
-                for (let i = 0; i < 3; i++) {
-                    this.ctx.fillRect(x, y + i * (size / 3) + 5, size, 3);
+                this.ctx.fillStyle = this.gbPalette.darkest;
+                this.ctx.fillRect(x + size * 0.3, y, 2, size);
+                this.ctx.fillRect(x + size * 0.65, y, 2, size);
+                for (let gy = 3; gy < size; gy += 4) {
+                    this.ctx.fillRect(x, y + gy, size, 1);
                 }
                 break;
 
             case 'graveyard':
-                this.ctx.fillStyle = '#7B7D7D';
-                this.ctx.fillRect(x + size / 3, y + size / 4, 10, 20);
-                this.ctx.fillRect(x + size / 3 + 3, y + size / 4 - 5, 4, 8);
+                this.ctx.fillStyle = this.gbPalette.darkest;
+                this.ctx.fillRect(x + size / 2 - 2, y + 4, 4, size - 8);
+                this.ctx.fillRect(x + size / 2 - 1, y + 2, 2, 3);
+                break;
+
+            case 'sand':
+                this.ctx.fillStyle = '#C2AA64';
+                for (let gx = 1; gx < size; gx += 5) {
+                    this.ctx.fillRect(x + gx, y + (gx % 7), 2, 1);
+                }
+                break;
+
+            case 'station':
+                this.ctx.fillStyle = this.gbPalette.darkest;
+                this.ctx.fillRect(x + 2, y + 2, size - 4, size / 2);
+                this.ctx.fillRect(x + size / 2 - 2, y + size / 2, 4, size / 2);
+                break;
+
+            case 'building':
+                this.ctx.fillStyle = this.gbPalette.darkest;
+                this.ctx.fillRect(x + 2, y + 2, size - 4, size - 6);
+                this.ctx.fillStyle = this.gbPalette.lightest;
+                this.ctx.fillRect(x + 4, y + 4, 4, 4);
+                this.ctx.fillRect(x + size - 8, y + 4, 4, 4);
+                break;
+
+            case 'door':
+                this.ctx.fillStyle = this.gbPalette.accent;
+                this.ctx.fillRect(x + 4, y + 4, size - 8, size - 6);
+                this.ctx.fillStyle = this.gbPalette.darkest;
+                this.ctx.fillRect(x + size - 7, y + size - 7, 2, 2);
+                break;
+
+            case 'wall':
+                this.ctx.fillStyle = this.gbPalette.dark;
+                for (let gy = 0; gy < size; gy += 4) {
+                    const offset = (gy / 4) % 2 === 0 ? 0 : 2;
+                    for (let gx = offset; gx < size; gx += 6) {
+                        this.ctx.fillRect(x + gx, y + gy, 4, 2);
+                    }
+                }
+                break;
+
+            case 'cave':
+                this.ctx.fillStyle = this.gbPalette.darkest;
+                for (let gx = 0; gx < size; gx += 3) {
+                    this.ctx.fillRect(x + gx, y + ((gx * 2) % size), 2, 2);
+                }
                 break;
         }
     }
@@ -215,43 +245,52 @@ class Graphics {
         const screenY = (player.y - camera.y) * this.tileSize * this.scale;
         const size = this.tileSize * this.scale;
 
-        // Draw player sprite (more detailed)
         this.drawPlayerSprite(screenX, screenY, size, player.direction);
     }
 
     drawPlayerSprite(x, y, size, direction) {
-        // Head
-        this.ctx.fillStyle = '#F5CBA7';
-        this.ctx.fillRect(x + size * 0.3, y + size * 0.2, size * 0.4, size * 0.3);
+        const unit = size / this.tileSize;
+        const p = this.gbPalette;
 
-        // Hat
-        this.ctx.fillStyle = '#E74C3C';
-        this.ctx.fillRect(x + size * 0.25, y + size * 0.15, size * 0.5, size * 0.15);
+        this.ctx.clearRect(x, y, size, size);
+
+        // Hat brim
+        this.ctx.fillStyle = p.darkest;
+        this.ctx.fillRect(x + 2 * unit, y + 4 * unit, 12 * unit, 2 * unit);
+
+        // Hat top
+        this.ctx.fillStyle = p.dark;
+        this.ctx.fillRect(x + 3 * unit, y + unit, 10 * unit, 3 * unit);
+
+        // Face
+        this.ctx.fillStyle = p.lightest;
+        this.ctx.fillRect(x + 5 * unit, y + 5 * unit, 6 * unit, 4 * unit);
 
         // Body
-        this.ctx.fillStyle = '#3498DB';
-        this.ctx.fillRect(x + size * 0.3, y + size * 0.5, size * 0.4, size * 0.3);
+        this.ctx.fillStyle = p.light;
+        this.ctx.fillRect(x + 4 * unit, y + 9 * unit, 8 * unit, 5 * unit);
 
-        // Legs
-        this.ctx.fillStyle = '#2C3E50';
-        this.ctx.fillRect(x + size * 0.35, y + size * 0.8, size * 0.12, size * 0.2);
-        this.ctx.fillRect(x + size * 0.53, y + size * 0.8, size * 0.12, size * 0.2);
+        // Strap/accent
+        this.ctx.fillStyle = p.darkest;
+        this.ctx.fillRect(x + 6 * unit, y + 9 * unit, 2 * unit, 5 * unit);
 
-        // Direction indicator
-        this.ctx.fillStyle = '#F39C12';
-        switch (direction) {
-            case CONSTANTS.DIRECTIONS.UP:
-                this.ctx.fillRect(x + size * 0.45, y + size * 0.1, size * 0.1, size * 0.08);
-                break;
-            case CONSTANTS.DIRECTIONS.DOWN:
-                this.ctx.fillRect(x + size * 0.45, y + size * 0.5, size * 0.1, size * 0.08);
-                break;
-            case CONSTANTS.DIRECTIONS.LEFT:
-                this.ctx.fillRect(x + size * 0.2, y + size * 0.55, size * 0.08, size * 0.1);
-                break;
-            case CONSTANTS.DIRECTIONS.RIGHT:
-                this.ctx.fillRect(x + size * 0.72, y + size * 0.55, size * 0.08, size * 0.1);
-                break;
+        // Arms
+        this.ctx.fillStyle = p.lightest;
+        this.ctx.fillRect(x + 3 * unit, y + 9 * unit, unit, 4 * unit);
+        this.ctx.fillRect(x + 12 * unit, y + 9 * unit, unit, 4 * unit);
+
+        // Feet
+        this.ctx.fillStyle = p.dark;
+        this.ctx.fillRect(x + 4 * unit, y + 14 * unit, 3 * unit, 2 * unit);
+        this.ctx.fillRect(x + 9 * unit, y + 14 * unit, 3 * unit, 2 * unit);
+
+        // Direction highlight (simple shift)
+        if (direction === CONSTANTS.DIRECTIONS.LEFT) {
+            this.ctx.fillStyle = p.darkest;
+            this.ctx.fillRect(x + 4 * unit, y + 5 * unit, unit, 4 * unit);
+        } else if (direction === CONSTANTS.DIRECTIONS.RIGHT) {
+            this.ctx.fillStyle = p.darkest;
+            this.ctx.fillRect(x + 10 * unit, y + 5 * unit, unit, 4 * unit);
         }
     }
 
@@ -271,42 +310,45 @@ class Graphics {
     }
 
     drawGymLeader(x, y, size, npc) {
-        // Special colors for gym leaders
-        const badgeColor = npc.badgeColor || '#FFD700';
-
-        // Head
-        this.ctx.fillStyle = '#F5CBA7';
-        this.ctx.fillRect(x + size * 0.3, y + size * 0.2, size * 0.4, size * 0.3);
-
-        // Crown/Badge
-        this.ctx.fillStyle = badgeColor;
-        this.ctx.fillRect(x + size * 0.25, y + size * 0.15, size * 0.5, size * 0.1);
-
-        // Body
-        this.ctx.fillStyle = npc.color || '#9B59B6';
-        this.ctx.fillRect(x + size * 0.3, y + size * 0.5, size * 0.4, size * 0.3);
-
-        // Cape
-        this.ctx.fillStyle = '#2C3E50';
-        this.ctx.fillRect(x + size * 0.2, y + size * 0.55, size * 0.6, size * 0.25);
+        this.drawChibiCharacter(x, y, size, this.gbPalette.light, true);
     }
 
     drawTrainer(x, y, size) {
-        // Regular trainer
-        this.ctx.fillStyle = '#F5CBA7';
-        this.ctx.fillRect(x + size * 0.3, y + size * 0.2, size * 0.4, size * 0.3);
-
-        this.ctx.fillStyle = '#16A085';
-        this.ctx.fillRect(x + size * 0.3, y + size * 0.5, size * 0.4, size * 0.5);
+        this.drawChibiCharacter(x, y, size, this.gbPalette.lightest);
     }
 
     drawGenericNPC(x, y, size) {
-        // Generic NPC
-        this.ctx.fillStyle = '#F5CBA7';
-        this.ctx.fillRect(x + size * 0.3, y + size * 0.2, size * 0.4, size * 0.3);
+        this.drawChibiCharacter(x, y, size, this.gbPalette.light);
+    }
 
-        this.ctx.fillStyle = '#7D3C98';
-        this.ctx.fillRect(x + size * 0.3, y + size * 0.5, size * 0.4, size * 0.5);
+    drawChibiCharacter(x, y, size, bodyColor, includeCape = false) {
+        const unit = size / this.tileSize;
+        const p = this.gbPalette;
+
+        this.ctx.clearRect(x, y, size, size);
+
+        // Hair / hat
+        this.ctx.fillStyle = bodyColor;
+        this.ctx.fillRect(x + 3 * unit, y + 2 * unit, 10 * unit, 3 * unit);
+        this.ctx.fillRect(x + 2 * unit, y + 4 * unit, 12 * unit, unit);
+
+        // Face
+        this.ctx.fillStyle = p.lightest;
+        this.ctx.fillRect(x + 5 * unit, y + 5 * unit, 6 * unit, 4 * unit);
+
+        // Body
+        this.ctx.fillStyle = bodyColor;
+        this.ctx.fillRect(x + 4 * unit, y + 9 * unit, 8 * unit, 5 * unit);
+
+        if (includeCape) {
+            this.ctx.fillStyle = p.dark;
+            this.ctx.fillRect(x + 2 * unit, y + 9 * unit, 12 * unit, 4 * unit);
+        }
+
+        // Legs
+        this.ctx.fillStyle = p.dark;
+        this.ctx.fillRect(x + 5 * unit, y + 14 * unit, 3 * unit, 2 * unit);
+        this.ctx.fillRect(x + 8 * unit, y + 14 * unit, 3 * unit, 2 * unit);
     }
 
     /**
@@ -637,10 +679,7 @@ class Graphics {
         }
     }
 
-    drawEnhancedTrainSprite(train, x, y, isPlayer) {
-        const size = 150; // Larger sprites
-
-        // Use the new cute train sprite system
+    drawEnhancedTrainSprite(train, x, y, isPlayer, size = 140) {
         this.drawCuteTrainSprite(train.species.id, train.level, x, y, size);
     }
 
@@ -748,18 +787,35 @@ class Graphics {
         this.ctx.fillStyle = gradient;
         this.ctx.fillRect(0, 0, CONSTANTS.CANVAS_WIDTH, CONSTANTS.CANVAS_HEIGHT);
 
-        // Draw platforms with shadow
-        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
-        this.ctx.fillRect(502, 172, 200, 10);
-        this.ctx.fillRect(152, 472, 200, 10);
+        const margin = 24;
+        const platformWidth = Math.min(200, Math.floor(CONSTANTS.CANVAS_WIDTH * 0.32));
+        const platformHeight = 18;
 
+        const enemyPlatformX = CONSTANTS.CANVAS_WIDTH - platformWidth - margin;
+        const enemyPlatformY = Math.floor(CONSTANTS.CANVAS_HEIGHT * 0.28);
+
+        const playerPlatformX = margin;
+        const playerPlatformY = Math.floor(CONSTANTS.CANVAS_HEIGHT * 0.68);
+
+        // Platform shadows
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+        this.ctx.fillRect(enemyPlatformX + 4, enemyPlatformY + platformHeight, platformWidth, 8);
+        this.ctx.fillRect(playerPlatformX + 4, playerPlatformY + platformHeight, platformWidth, 8);
+
+        // Platforms
         this.ctx.fillStyle = '#654321';
-        this.ctx.fillRect(500, 170, 200, 20);
-        this.ctx.fillRect(150, 470, 200, 20);
+        this.ctx.fillRect(enemyPlatformX, enemyPlatformY, platformWidth, platformHeight);
+        this.ctx.fillRect(playerPlatformX, playerPlatformY, platformWidth, platformHeight);
 
         // Draw enhanced train sprites
-        this.drawEnhancedTrainSprite(battle.enemyActive, 520, 50, false);
-        this.drawEnhancedTrainSprite(battle.playerActive, 170, 350, true);
+        const spriteSize = Math.min(140, platformWidth - 20);
+        const enemySpriteX = enemyPlatformX + (platformWidth - spriteSize) / 2;
+        const enemySpriteY = enemyPlatformY - spriteSize + platformHeight / 2;
+        const playerSpriteX = playerPlatformX + (platformWidth - spriteSize) / 2;
+        const playerSpriteY = playerPlatformY - spriteSize + platformHeight / 2;
+
+        this.drawEnhancedTrainSprite(battle.enemyActive, enemySpriteX, enemySpriteY, false, spriteSize);
+        this.drawEnhancedTrainSprite(battle.playerActive, playerSpriteX, playerSpriteY, true, spriteSize);
 
         // Draw HUD
         this.drawBattleHUD(battle);
@@ -775,16 +831,23 @@ class Graphics {
     }
 
     drawBattleHUD(battle) {
-        // Enemy train info
-        this.drawTrainInfo(battle.enemyActive, 500, 50, false);
+        const margin = 20;
+        const menuHeight = 140;
+        const infoWidth = Math.min(320, CONSTANTS.CANVAS_WIDTH - margin * 2);
 
-        // Player train info
-        this.drawTrainInfo(battle.playerActive, 50, 500, true);
+        const enemyInfoX = CONSTANTS.CANVAS_WIDTH - infoWidth - margin;
+        const enemyInfoY = margin;
+        this.drawTrainInfo(battle.enemyActive, enemyInfoX, enemyInfoY, false, infoWidth);
+
+        const playerInfoHeight = 100;
+        const playerInfoX = margin;
+        const playerInfoY = Math.max(margin, CONSTANTS.CANVAS_HEIGHT - menuHeight - margin * 2 - playerInfoHeight);
+        this.drawTrainInfo(battle.playerActive, playerInfoX, playerInfoY, true, infoWidth);
     }
 
-    drawTrainInfo(train, x, y, showHP) {
-        const width = 350;
-        const height = showHP ? 100 : 80;
+    drawTrainInfo(train, x, y, showHP, widthOverride = null) {
+        const width = widthOverride || Math.min(320, CONSTANTS.CANVAS_WIDTH - 40);
+        const height = showHP ? 100 : 84;
 
         // Background with gradient
         const gradient = this.ctx.createLinearGradient(x, y, x, y + height);
@@ -806,9 +869,9 @@ class Graphics {
 
         if (showHP) {
             // HP bar
-            const hpBarX = x + 100;
-            const hpBarY = y + 50;
-            const hpBarWidth = 200;
+            const hpBarX = x + 90;
+            const hpBarY = y + 46;
+            const hpBarWidth = Math.max(150, width - 130);
             const hpBarHeight = 12;
 
             this.ctx.fillStyle = CONSTANTS.COLORS.BLACK;
@@ -827,15 +890,16 @@ class Graphics {
 
             // HP numbers
             this.ctx.fillStyle = CONSTANTS.COLORS.BLACK;
-            this.ctx.fillText(`${train.currentHP}/${train.maxHP}`, x + 10, y + 80);
+            this.ctx.fillText(`${train.currentHP}/${train.maxHP}`, x + 10, y + 78);
         }
     }
 
     drawBattleMenu(battle) {
-        const x = 50;
-        const y = 650;
-        const width = 860;
-        const height = 160;
+        const margin = 20;
+        const height = 140;
+        const width = CONSTANTS.CANVAS_WIDTH - (margin * 2);
+        const x = margin;
+        const y = CONSTANTS.CANVAS_HEIGHT - height - margin;
 
         // Menu background
         this.ctx.fillStyle = CONSTANTS.COLORS.WHITE;
@@ -865,15 +929,16 @@ class Graphics {
 
             // Draw option text
             this.ctx.fillStyle = i === battle.menuSelection ? CONSTANTS.COLORS.WHITE : CONSTANTS.COLORS.BLACK;
-            this.ctx.fillText(options[i], optionX + 60, optionY + 50);
-        }
+            this.ctx.fillText(options[i], optionX + 48, optionY + 48);
+    }
     }
 
     drawMoveSelection(battle) {
-        const x = 50;
-        const y = 650;
-        const width = 860;
-        const height = 160;
+        const margin = 20;
+        const height = 140;
+        const width = CONSTANTS.CANVAS_WIDTH - (margin * 2);
+        const x = margin;
+        const y = CONSTANTS.CANVAS_HEIGHT - height - margin;
 
         // Menu background
         this.ctx.fillStyle = CONSTANTS.COLORS.WHITE;
@@ -903,23 +968,24 @@ class Graphics {
 
             // Draw move name
             this.ctx.fillStyle = i === battle.moveSelection ? CONSTANTS.COLORS.WHITE : CONSTANTS.COLORS.BLACK;
-            this.ctx.fillText(moves[i], optionX + 40, optionY + 40);
+            this.ctx.fillText(moves[i], optionX + 24, optionY + 36);
 
             // Draw move type
             const moveData = MOVES_DB[moves[i]];
             if (moveData) {
                 this.ctx.font = '14px monospace';
-                this.ctx.fillText(`Type: ${moveData.type}`, optionX + 40, optionY + 65);
+                this.ctx.fillText(`Type: ${moveData.type}`, optionX + 24, optionY + 60);
                 this.ctx.font = 'bold 20px monospace';
             }
         }
     }
 
     drawMessage(message) {
-        const x = 50;
-        const y = 650;
-        const width = 860;
-        const height = 160;
+        const margin = 20;
+        const height = 140;
+        const width = CONSTANTS.CANVAS_WIDTH - (margin * 2);
+        const x = margin;
+        const y = CONSTANTS.CANVAS_HEIGHT - height - margin;
 
         // Message box
         this.ctx.fillStyle = CONSTANTS.COLORS.WHITE;
@@ -932,14 +998,14 @@ class Graphics {
         this.ctx.fillStyle = CONSTANTS.COLORS.BLACK;
         this.ctx.font = '20px monospace';
 
-        const lines = Utils.wrapText(message, width - 40, this.ctx, 20);
+        const lines = Utils.wrapText(message, width - 32, this.ctx, 20);
         for (let i = 0; i < lines.length; i++) {
-            this.ctx.fillText(lines[i], x + 20, y + 40 + i * 30);
+            this.ctx.fillText(lines[i], x + 16, y + 34 + i * 28);
         }
 
         // Blinking arrow
         if (Math.floor(Date.now() / 500) % 2 === 0) {
-            this.ctx.fillText('▼', x + width - 40, y + height - 30);
+            this.ctx.fillText('▼', x + width - 32, y + height - 24);
         }
     }
 
@@ -968,22 +1034,35 @@ class Graphics {
         // Start prompt
         if (Math.floor(Date.now() / 1000) % 2 === 0) {
             this.ctx.font = 'bold 28px monospace';
-            this.ctx.fillText('PRESS ENTER TO START', CONSTANTS.CANVAS_WIDTH / 2, 600);
+        this.ctx.fillText('PRESS ENTER TO START', CONSTANTS.CANVAS_WIDTH / 2, CONSTANTS.CANVAS_HEIGHT - 80);
         }
 
         // Version
         this.ctx.fillStyle = '#888888';
         this.ctx.font = '16px monospace';
-        this.ctx.fillText(`v${CONSTANTS.VERSION}`, CONSTANTS.CANVAS_WIDTH / 2, 800);
+        this.ctx.fillText(`v${CONSTANTS.VERSION}`, CONSTANTS.CANVAS_WIDTH / 2, CONSTANTS.CANVAS_HEIGHT - 40);
 
         this.ctx.textAlign = 'left';
     }
 
-    drawDialogue(dialogue) {
-        const x = 50;
-        const y = 600;
-        const width = 860;
-        const height = 210;
+    drawDialogue(dialogueOrBox, menuSelection = 0) {
+        let dialogueBox = null;
+        let dialogue = null;
+
+        if (dialogueOrBox && typeof dialogueOrBox.getCurrentDialogue === 'function') {
+            dialogueBox = dialogueOrBox;
+            dialogue = dialogueBox.getCurrentDialogue();
+        } else {
+            dialogue = dialogueOrBox;
+        }
+
+        if (!dialogue) return;
+
+        const margin = 20;
+        const height = 160;
+        const width = CONSTANTS.CANVAS_WIDTH - (margin * 2);
+        const x = margin;
+        const y = CONSTANTS.CANVAS_HEIGHT - height - margin;
 
         // Dialogue box
         this.ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
@@ -999,21 +1078,55 @@ class Graphics {
         if (dialogue.speaker) {
             this.ctx.fillStyle = CONSTANTS.COLORS.UI_HIGHLIGHT;
             this.ctx.font = 'bold 18px monospace';
-            this.ctx.fillText(dialogue.speaker, x + 20, y + 30);
+            this.ctx.fillText(dialogue.speaker, x + 16, y + 28);
         }
 
         // Message text
         this.ctx.fillStyle = CONSTANTS.COLORS.BLACK;
         this.ctx.font = '18px monospace';
 
-        const lines = Utils.wrapText(dialogue.text, width - 40, this.ctx, 18);
+        const text = dialogueBox ? dialogueBox.currentText : dialogue.text;
+        const lines = Utils.wrapText(text, width - 40, this.ctx, 18);
         for (let i = 0; i < Math.min(lines.length, 5); i++) {
-            this.ctx.fillText(lines[i], x + 20, y + (dialogue.speaker ? 60 : 40) + i * 28);
+            this.ctx.fillText(lines[i], x + 16, y + (dialogue.speaker ? 56 : 36) + i * 26);
         }
 
         // Continue arrow
-        if (Math.floor(Date.now() / 500) % 2 === 0) {
-            this.ctx.fillText('▼', x + width - 40, y + height - 30);
+        const finished = dialogueBox ? dialogueBox.isFinished() : true;
+        if (finished && Math.floor(Date.now() / 500) % 2 === 0) {
+            this.ctx.fillText('▼', x + width - 32, y + height - 24);
+        }
+
+        // Choices
+        if (dialogueBox && dialogue.choices && dialogueBox.isFinished()) {
+            const choiceWidth = 160;
+            const choiceHeight = 44;
+            const choiceX = x + width - choiceWidth - 12;
+            const choiceY = y - choiceHeight - 12;
+
+            for (let i = 0; i < dialogue.choices.length; i++) {
+                const choice = dialogue.choices[i];
+                const currentChoiceY = choiceY - i * (choiceHeight + 8);
+
+                if (i === menuSelection) {
+                    this.ctx.fillStyle = CONSTANTS.COLORS.UI_HIGHLIGHT;
+                    this.ctx.fillRect(choiceX, currentChoiceY, choiceWidth, choiceHeight);
+                    this.ctx.fillStyle = CONSTANTS.COLORS.WHITE;
+                } else {
+                    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+                    this.ctx.fillRect(choiceX, currentChoiceY, choiceWidth, choiceHeight);
+                    this.ctx.fillStyle = CONSTANTS.COLORS.BLACK;
+                }
+
+                this.ctx.strokeStyle = CONSTANTS.COLORS.BLACK;
+                this.ctx.lineWidth = 2;
+                this.ctx.strokeRect(choiceX, currentChoiceY, choiceWidth, choiceHeight);
+
+                this.ctx.font = '16px monospace';
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText(choice.text, choiceX + choiceWidth / 2, currentChoiceY + 28);
+                this.ctx.textAlign = 'left';
+            }
         }
     }
 }

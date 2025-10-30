@@ -43,6 +43,22 @@ class InputHandler {
         return pressed;
     }
 
+    getMovementAction() {
+        // Check for virtual keys (mobile) first
+        if (this.isVirtualKeyDown('up')) return 'up';
+        if (this.isVirtualKeyDown('down')) return 'down';
+        if (this.isVirtualKeyDown('left')) return 'left';
+        if (this.isVirtualKeyDown('right')) return 'right';
+
+        // Check for physical keyboard keys
+        if (this.isKeyDown('ArrowUp') || this.isKeyDown('w')) return 'up';
+        if (this.isKeyDown('ArrowDown') || this.isKeyDown('s')) return 'down';
+        if (this.isKeyDown('ArrowLeft') || this.isKeyDown('a')) return 'left';
+        if (this.isKeyDown('ArrowRight') || this.isKeyDown('d')) return 'right';
+
+        return null;
+    }
+
     getAction() {
         // Check for virtual keys (mobile) first
         if (this.isVirtualKeyJustPressed('up')) return 'up';
@@ -84,6 +100,10 @@ class InputHandler {
             this.virtualKeysJustPressed[key] = false;
         }
         return pressed;
+    }
+
+    isVirtualKeyDown(key) {
+        return this.virtualKeys[key] || false;
     }
 
     reset() {

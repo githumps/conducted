@@ -17,7 +17,8 @@ const TILE_TYPES = {
     STATION: 8,
     GRAVEYARD: 9,
     SAND: 10,
-    CAVE: 11
+    CAVE: 11,
+    DOOR: 12
 };
 
 /**
@@ -58,10 +59,18 @@ class WorldMap {
 
     isWalkable(x, y) {
         const tile = this.getTile(x, y);
+        if (tile === TILE_TYPES.DOOR) {
+            return true;
+        }
         return tile !== TILE_TYPES.VOID &&
                tile !== TILE_TYPES.WALL &&
                tile !== TILE_TYPES.WATER &&
                tile !== TILE_TYPES.BUILDING;
+    }
+
+    isDoor(x, y) {
+        const tile = this.getTile(x, y);
+        return tile === TILE_TYPES.DOOR;
     }
 
     checkForEncounter() {
@@ -117,15 +126,15 @@ function createPistonTown() {
 
     // Professor's Lab (top left)
     map.fillRect(5, 5, 8, 6, TILE_TYPES.BUILDING);
-    map.setTile(9, 10, TILE_TYPES.PATH); // Door
+    map.setTile(9, 10, TILE_TYPES.DOOR);
 
     // Player's House (top right)
     map.fillRect(27, 5, 8, 6, TILE_TYPES.BUILDING);
-    map.setTile(31, 10, TILE_TYPES.PATH);
+    map.setTile(31, 10, TILE_TYPES.DOOR);
 
     // Train Station (bottom)
     map.fillRect(15, 20, 10, 6, TILE_TYPES.STATION);
-    map.setTile(20, 20, TILE_TYPES.PATH);
+    map.setTile(20, 20, TILE_TYPES.DOOR);
 
     // Old Iron Memorial
     map.fillRect(18, 13, 4, 3, TILE_TYPES.RAILS);
@@ -162,6 +171,45 @@ function createPistonTown() {
         dialogue: [
             { speaker: 'Mom', text: 'Be safe on your journey, dear! Come back anytime to rest.' }
         ]
+    });
+
+    map.addNPC({
+        id: 'item_giver_1',
+        name: 'Helpful Person',
+        x: 15,
+        y: 15,
+        type: 'item',
+        item: 'potion',
+        quantity: 1,
+        itemTaken: false,
+        dialogue: [
+            { speaker: 'Helpful Person', text: 'You look like you could use this!' }
+        ],
+        movement: {
+            pattern: 'square',
+            radius: 2
+        }
+    });
+
+    map.addNPC({
+        id: 'rival',
+        name: 'Blake',
+        x: 25,
+        y: 15,
+        type: 'trainer',
+        canBattle: true,
+        defeated: false,
+        party: [
+            { speciesId: 4, level: 5 }
+        ],
+        dialogue: [
+            { speaker: 'Blake', text: 'Hey! I was just about to challenge you!' },
+            { speaker: 'Blake', text: 'Let\'s see whose train is stronger!' }
+        ],
+        defeatDialogue: [
+            { speaker: 'Blake', text: 'Hmph! You got lucky this time!' }
+        ],
+        event: 'start_battle'
     });
 
     map.music = 'piston_town';
@@ -265,6 +313,7 @@ function createCoalHarbor() {
     map.fillRect(5, 5, 10, 8, TILE_TYPES.BUILDING);   // Poke Center equivalent
     map.fillRect(5, 25, 10, 8, TILE_TYPES.BUILDING);  // Mart
     map.fillRect(18, 10, 8, 12, TILE_TYPES.STATION);  // GYM
+    map.setTile(22, 21, TILE_TYPES.DOOR);
 
     // Train Station
     map.fillRect(20, 30, 8, 6, TILE_TYPES.STATION);
@@ -455,6 +504,8 @@ function createAllMaps() {
     maps['coal_harbor'] = createCoalHarbor();
     maps['ghost_graveyard'] = createGhostGraveyard();
     maps['voltage_city'] = createVoltageCity();
+    maps['professors_lab'] = createProfessorsLab();
+    maps['coal_harbor_gym'] = createCoalHarborGym();
 
     // TODO: Create remaining towns and routes
     // - Steamspring Village

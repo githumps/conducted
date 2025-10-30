@@ -18,6 +18,7 @@ class Game {
         this.currentMap = null;
         this.battle = null;
         this.dialogueBox = new DialogueBox();
+        this.menuSelection = 0;
 
         // Intro and starter selection
         this.introScene = null;
@@ -76,7 +77,7 @@ class Game {
                 break;
 
             case CONSTANTS.STATES.DIALOGUE:
-                this.updateDialogue();
+                this.updateDialogue(deltaTime);
                 break;
         }
 
@@ -103,7 +104,7 @@ class Game {
 
                 if (this.introScene.isComplete()) {
                     // Intro is complete, move to starter selection
-                    this.starterSelection = new StarterSelection();
+                    this.starterSelection = new StarterSelection(this);
                     this.state = CONSTANTS.STATES.STARTER_SELECTION;
                     console.log('Intro complete! Moving to starter selection...');
                 }
@@ -113,6 +114,7 @@ class Game {
 
     updateStarterSelection() {
         const action = this.input.getAction();
+        const moveAction = this.input.getMovementAction();
 
         if (!this.starterSelection) return;
 
@@ -123,22 +125,26 @@ class Game {
                 this.starterSelection.advanceIntro();
             }
         } else if (this.starterSelection.phase === 'selection') {
-            // Selecting starter
-            if (action === 'left') {
+            if (moveAction === 'left') {
                 this.starterSelection.moveSelection('left');
-            } else if (action === 'right') {
+            } else if (moveAction === 'right') {
                 this.starterSelection.moveSelection('right');
             } else if (action === 'a') {
-                // Confirm selection
-                const starterTrain = this.starterSelection.confirm();
-                this.player.addTrain(starterTrain);
-
-                // Give player starting items
-                this.player.items.pokeball = 5;  // Trainballs
-                this.player.items.potion = 2;     // Potions
-
-                this.starterSelection.phase = 'post-selection';
-                console.log(`Selected ${starterTrain.species.name}!`);
+                this.menuSelection = 0;
+                this.starterSelection.confirmSelection();
+            }
+        } else if (this.starterSelection.phase === 'confirmation') {
+            if (action === 'left' || action === 'right') {
+                this.menuSelection = (this.menuSelection + 1) % 2;
+            } else if (action === 'a') {
+                if (this.menuSelection === 0) {
+                    this.starterSelection.confirm();
+                } else {
+                    this.starterSelection.cancelSelection();
+                }
+                this.menuSelection = 0;
+            } else if (action === 'b') {
+                this.starterSelection.cancelSelection();
             }
         } else if (this.starterSelection.phase === 'post-selection') {
             // Post-selection dialogue
@@ -169,35 +175,32 @@ class Game {
 
     updateOverworld(deltaTime) {
         this.player.update(deltaTime);
+        this.updateNPCs(deltaTime);
 
         // Update camera
         if (this.currentMap) {
             this.graphics.updateCamera(this.player, this.currentMap);
         }
 
+        const moveAction = this.input.getMovementAction();
         const action = this.input.getAction();
 
         if (!this.player.isMoving) {
-            if (action === 'up') {
-                if (this.player.move(CONSTANTS.DIRECTIONS.UP, this.currentMap)) {
-                    this.stepCounter++;
-                    this.checkForEncounter();
-                }
-            } else if (action === 'down') {
-                if (this.player.move(CONSTANTS.DIRECTIONS.DOWN, this.currentMap)) {
-                    this.stepCounter++;
-                    this.checkForEncounter();
-                }
-            } else if (action === 'left') {
-                if (this.player.move(CONSTANTS.DIRECTIONS.LEFT, this.currentMap)) {
-                    this.stepCounter++;
-                    this.checkForEncounter();
-                }
-            } else if (action === 'right') {
-                if (this.player.move(CONSTANTS.DIRECTIONS.RIGHT, this.currentMap)) {
-                    this.stepCounter++;
-                    this.checkForEncounter();
-                }
+            let moved = false;
+            if (moveAction === 'up') {
+                moved = this.player.move(CONSTANTS.DIRECTIONS.UP, this.currentMap);
+            } else if (moveAction === 'down') {
+                moved = this.player.move(CONSTANTS.DIRECTIONS.DOWN, this.currentMap);
+            } else if (moveAction === 'left') {
+                moved = this.player.move(CONSTANTS.DIRECTIONS.LEFT, this.currentMap);
+            } else if (moveAction === 'right') {
+                moved = this.player.move(CONSTANTS.DIRECTIONS.RIGHT, this.currentMap);
+            }
+
+            if (moved) {
+                this.stepCounter++;
+                this.checkForEncounter();
+                this.checkForDoor();
             } else if (action === 'start') {
                 this.state = CONSTANTS.STATES.TITLE;
             } else if (action === 'a') {
@@ -240,10 +243,22 @@ class Game {
         }
     }
 
-    updateDialogue() {
-        const action = this.input.getAction();
+    updateDialogue(deltaTime) {
+        this.dialogueBox.update(deltaTime);
 
-        if (action === 'a') {
+        const action = this.input.getAction();
+        const dialogue = this.dialogueBox.getCurrentDialogue();
+
+        if (dialogue && dialogue.choices && this.dialogueBox.isFinished()) {
+            if (action === 'up') {
+                this.menuSelection = (this.menuSelection - 1 + dialogue.choices.length) % dialogue.choices.length;
+            } else if (action === 'down') {
+                this.menuSelection = (this.menuSelection + 1) % dialogue.choices.length;
+            } else if (action === 'a') {
+                this.dialogueBox.handleChoice(this.menuSelection);
+                this.menuSelection = 0;
+            }
+        } else if (action === 'a') {
             this.dialogueBox.advance();
 
             if (!this.dialogueBox.isActive()) {
@@ -263,6 +278,38 @@ class Game {
             if (this.currentMap.checkForEncounter()) {
                 this.startBattle();
             }
+        }
+    }
+
+    checkForDoor() {
+        if (!this.currentMap) return;
+
+        const tile = this.currentMap.getTile(this.player.x, this.player.y);
+        if (this.currentMap.isDoor(this.player.x, this.player.y)) {
+            // Simple example: hardcode a transition
+            if (this.currentMap.name === 'piston_town' && this.player.x === 9 && this.player.y === 10) {
+                this.changeMap('professors_lab', 5, 8);
+            } else if (this.currentMap.name === 'professors_lab' && this.player.x === 5 && this.player.y === 9) {
+                this.changeMap('piston_town', 20, 13);
+            } else if (this.currentMap.name === 'coal_harbor' && this.player.x === 22 && this.player.y === 21) {
+                this.changeMap('coal_harbor_gym', 7, 13);
+            } else if (this.currentMap.name === 'coal_harbor_gym' && this.player.x === 7 && this.player.y === 14) {
+                this.changeMap('coal_harbor', 22, 22);
+            }
+        }
+    }
+
+    changeMap(mapName, newX, newY) {
+        if (this.maps[mapName]) {
+            this.currentMap = this.maps[mapName];
+            this.player.currentMap = mapName;
+            this.player.x = newX;
+            this.player.y = newY;
+            this.player.targetX = newX;
+            this.player.targetY = newY;
+            console.log(`Changed map to ${mapName} at ${newX}, ${newY}`);
+        } else {
+            console.error(`Map "${mapName}" not found!`);
         }
     }
 
@@ -297,9 +344,23 @@ class Game {
             if (npc.canBattle && !npc.defeated) {
                 // Start battle with NPC
                 this.startNPCBattle(npc);
+            } else if (npc.type === 'item' && !npc.itemTaken) {
+                this.player.addItem(npc.item, npc.quantity);
+                npc.itemTaken = true;
+                this.dialogueBox.show([
+                    {
+                        speaker: 'System',
+                        text: `You received ${npc.quantity} ${npc.item}(s)!`
+                    }
+                ]);
+                this.state = CONSTANTS.STATES.DIALOGUE;
             } else if (npc.dialogue && npc.dialogue.length > 0) {
                 // Show dialogue
-                this.dialogueBox.show(npc.dialogue);
+                this.dialogueBox.show(npc.dialogue, () => {
+                    if (npc.event) {
+                        this.triggerEvent(npc.event);
+                    }
+                });
                 this.state = CONSTANTS.STATES.DIALOGUE;
             }
         }
@@ -422,19 +483,30 @@ class Game {
         this.ctx.fillStyle = '#FFD700';
         this.ctx.font = 'bold 48px monospace';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('Choose Your Partner!', CONSTANTS.CANVAS_WIDTH / 2, 80);
+        this.ctx.fillText('Choose Your Partner!', CONSTANTS.CANVAS_WIDTH / 2, 72);
 
-        // Draw three starter "eggs" / boxes
+        const margin = 20;
+        const spacing = 16;
+        const topY = 110;
+        const availableWidth = CONSTANTS.CANVAS_WIDTH - margin * 2;
+        const availableHeight = CONSTANTS.CANVAS_HEIGHT - topY - margin;
+
+        // Reserve space for description panel
+        let descHeight = Math.max(160, Math.floor(availableHeight * 0.4));
+        let boxHeight = availableHeight - descHeight - spacing;
+        if (boxHeight < 180) {
+            boxHeight = 180;
+            descHeight = Math.max(140, availableHeight - boxHeight - spacing);
+        }
+
         const starters = this.starterSelection.starters;
-        const boxWidth = 240;
-        const boxHeight = 320;
-        const spacing = 40;
-        const totalWidth = (boxWidth * 3) + (spacing * 2);
-        const startX = (CONSTANTS.CANVAS_WIDTH - totalWidth) / 2;
-        const y = 150;
+        const boxWidth = Math.floor((availableWidth - spacing * 2) / 3);
+        const startX = margin;
+        const boxY = topY;
 
         for (let i = 0; i < starters.length; i++) {
             const x = startX + (i * (boxWidth + spacing));
+            const y = boxY;
             const starter = starters[i];
             const isSelected = (i === this.starterSelection.selection);
 
@@ -453,29 +525,29 @@ class Game {
             this.ctx.strokeRect(x, y, boxWidth, boxHeight);
 
             // Draw cute baby train sprite!
-            const trainX = x + (boxWidth - 100) / 2;
-            const trainY = y + 40;
+            const spriteSize = Math.min(96, boxWidth - 40);
+            const trainX = x + (boxWidth - spriteSize) / 2;
+            const trainY = y + 30;
 
             // Draw the actual train sprite (all starters are level 5, so they're babies)
-            this.graphics.drawCuteTrainSprite(starter.id, 5, trainX, trainY, 100);
+            this.graphics.drawCuteTrainSprite(starter.id, 5, trainX, trainY, spriteSize);
 
             // Starter name (below the train sprite)
             this.ctx.fillStyle = isSelected ? '#FFD700' : '#FFFFFF';
             this.ctx.font = 'bold 24px monospace';
             this.ctx.textAlign = 'center';
-            this.ctx.fillText(starter.displayName, x + boxWidth / 2, y + 170);
+            this.ctx.fillText(starter.displayName, x + boxWidth / 2, y + boxHeight - 70);
 
             // Type
             this.ctx.font = '16px monospace';
-            this.ctx.fillText(`Type: ${starter.types[0]}`, x + boxWidth / 2, y + 200);
+            this.ctx.fillText(`Type: ${starter.types[0]}`, x + boxWidth / 2, y + boxHeight - 40);
         }
 
         // Description box at bottom
         const currentStarter = this.starterSelection.getCurrentStarter();
-        const descX = 50;
-        const descY = 520;
-        const descWidth = 860;
-        const descHeight = 280;
+        const descX = margin;
+        const descY = boxY + boxHeight + spacing;
+        const descWidth = availableWidth;
 
         this.ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
         this.ctx.fillRect(descX, descY, descWidth, descHeight);
@@ -488,7 +560,7 @@ class Game {
         this.ctx.font = '18px monospace';
         this.ctx.textAlign = 'left';
 
-        const lines = Utils.wrapText(currentStarter.description, descWidth - 40, this.ctx, 18);
+        const lines = Utils.wrapText(currentStarter.description, descWidth - 32, this.ctx, 18);
         for (let i = 0; i < lines.length; i++) {
             this.ctx.fillText(lines[i], descX + 20, descY + 40 + i * 28);
         }
@@ -497,7 +569,56 @@ class Game {
         this.ctx.fillStyle = '#FFD700';
         this.ctx.font = 'bold 20px monospace';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('Use ← → to select, press A to confirm', CONSTANTS.CANVAS_WIDTH / 2, descY + descHeight - 20);
+        this.ctx.fillText('Use ← → to select, press Z to confirm', CONSTANTS.CANVAS_WIDTH / 2, descY + descHeight - 20);
+
+        if (this.starterSelection.phase === 'confirmation') {
+            const confirmWidth = 400;
+            const confirmHeight = 150;
+            const confirmX = (CONSTANTS.CANVAS_WIDTH - confirmWidth) / 2;
+            const confirmY = (CONSTANTS.CANVAS_HEIGHT - confirmHeight) / 2;
+
+            this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            this.ctx.fillRect(0, 0, CONSTANTS.CANVAS_WIDTH, CONSTANTS.CANVAS_HEIGHT);
+
+            this.ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+            this.ctx.fillRect(confirmX, confirmY, confirmWidth, confirmHeight);
+            this.ctx.strokeStyle = CONSTANTS.COLORS.BLACK;
+            this.ctx.lineWidth = 4;
+            this.ctx.strokeRect(confirmX, confirmY, confirmWidth, confirmHeight);
+
+            this.ctx.fillStyle = CONSTANTS.COLORS.BLACK;
+            this.ctx.font = 'bold 24px monospace';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText(`Choose ${this.starterSelection.getCurrentStarter().displayName}?`, CONSTANTS.CANVAS_WIDTH / 2, confirmY + 50);
+
+            const choiceWidth = 100;
+            const choiceHeight = 40;
+            const yesX = confirmX + 50;
+            const noX = confirmX + confirmWidth - choiceWidth - 50;
+            const choiceY = confirmY + 80;
+
+            // Yes
+            if (this.menuSelection === 0) {
+                this.ctx.fillStyle = CONSTANTS.COLORS.UI_HIGHLIGHT;
+                this.ctx.fillRect(yesX, choiceY, choiceWidth, choiceHeight);
+                this.ctx.fillStyle = CONSTANTS.COLORS.WHITE;
+            } else {
+                this.ctx.fillStyle = CONSTANTS.COLORS.BLACK;
+            }
+            this.ctx.fillText('Yes', yesX + choiceWidth / 2, choiceY + 28);
+
+            // No
+            if (this.menuSelection === 1) {
+                this.ctx.fillStyle = CONSTANTS.COLORS.UI_HIGHLIGHT;
+                this.ctx.fillRect(noX, choiceY, choiceWidth, choiceHeight);
+                this.ctx.fillStyle = CONSTANTS.COLORS.WHITE;
+            } else {
+                this.ctx.fillStyle = CONSTANTS.COLORS.BLACK;
+            }
+            this.ctx.fillText('No', noX + choiceWidth / 2, choiceY + 28);
+        }
+
+        this.ctx.textAlign = 'left';
     }
 
     renderOverworld() {
@@ -559,15 +680,20 @@ class Game {
         }
 
         // Badges counter
+        const badgeWidth = 200;
+        const badgeHeight = 36;
+        const badgeX = 20;
+        const badgeY = CONSTANTS.CANVAS_HEIGHT - badgeHeight - 20;
+
         this.ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-        this.ctx.fillRect(20, 700, 200, 40);
+        this.ctx.fillRect(badgeX, badgeY, badgeWidth, badgeHeight);
         this.ctx.strokeStyle = CONSTANTS.COLORS.BLACK;
         this.ctx.lineWidth = 2;
-        this.ctx.strokeRect(20, 700, 200, 40);
+        this.ctx.strokeRect(badgeX, badgeY, badgeWidth, badgeHeight);
 
         this.ctx.fillStyle = CONSTANTS.COLORS.BLACK;
         this.ctx.font = '14px monospace';
-        this.ctx.fillText(`Badges: ${this.player.badgeCount}/8`, 30, 725);
+        this.ctx.fillText(`Badges: ${this.player.badgeCount}/8`, badgeX + 10, badgeY + 24);
     }
 
     renderBattle() {
@@ -580,12 +706,18 @@ class Game {
         this.renderOverworld();
 
         // Draw menu overlay
+        const margin = 20;
+        const menuWidth = Math.min(340, CONSTANTS.CANVAS_WIDTH - margin * 2);
+        const menuHeight = Math.min(360, CONSTANTS.CANVAS_HEIGHT - margin * 2);
+        const menuX = (CONSTANTS.CANVAS_WIDTH - menuWidth) / 2;
+        const menuY = (CONSTANTS.CANVAS_HEIGHT - menuHeight) / 2;
+
         UI.drawMenu(
             this.ctx,
-            200,
-            150,
-            560,
-            500,
+            menuX,
+            menuY,
+            menuWidth,
+            menuHeight,
             [
                 'TRAINS',
                 'INVENTORY',
@@ -602,9 +734,8 @@ class Game {
         this.renderOverworld();
 
         // Draw dialogue box on top
-        const dialogue = this.dialogueBox.getCurrentDialogue();
-        if (dialogue) {
-            this.graphics.drawDialogue(dialogue);
+        if (this.dialogueBox.isActive()) {
+            this.graphics.drawDialogue(this.dialogueBox, this.menuSelection);
         }
     }
 
@@ -710,9 +841,94 @@ class Game {
 
         return false;
     }
+
+    triggerEvent(eventName) {
+        console.log(`Triggering event: ${eventName}`);
+        switch (eventName) {
+            case 'start_battle':
+                this.startBattle();
+                break;
+            default:
+                console.warn(`Unknown event: ${eventName}`);
+        }
+    }
+
+    updateNPCs(deltaTime) {
+        if (!this.currentMap) return;
+
+        for (const npc of this.currentMap.npcs) {
+            if (npc.movement) {
+                if (!npc.movement.timer) {
+                    npc.movement.timer = 0;
+                    npc.movement.step = 0;
+                }
+                npc.movement.timer += deltaTime;
+
+                if (npc.movement.timer > 1) { // Move every 1 second
+                    npc.movement.timer = 0;
+
+                    let newX = npc.x;
+                    let newY = npc.y;
+
+                    if (npc.movement.pattern === 'square') {
+                        if (!npc.movement.initialX) {
+                            npc.movement.initialX = npc.x;
+                            npc.movement.initialY = npc.y;
+                        }
+                        const radius = npc.movement.radius || 1;
+                        switch (npc.movement.step % 4) {
+                            case 0: // Right
+                                newX = npc.movement.initialX + radius;
+                                newY = npc.movement.initialY;
+                                break;
+                            case 1: // Down
+                                newX = npc.movement.initialX + radius;
+                                newY = npc.movement.initialY + radius;
+                                break;
+                            case 2: // Left
+                                newX = npc.movement.initialX;
+                                newY = npc.movement.initialY + radius;
+                                break;
+                            case 3: // Up
+                                newX = npc.movement.initialX;
+                                newY = npc.movement.initialY;
+                                break;
+                        }
+                        npc.movement.step++;
+                    } else { // Random movement
+                        const direction = Math.floor(Math.random() * 4);
+                        switch (direction) {
+                            case 0: // Up
+                                newY--;
+                                break;
+                            case 1: // Down
+                                newY++;
+                                break;
+                            case 2: // Left
+                                newX--;
+                                break;
+                            case 3: // Right
+                                newX++;
+                                break;
+                        }
+                    }
+
+                    if (this.currentMap.isWalkable(newX, newY)) {
+                        npc.x = newX;
+                        npc.y = newY;
+                    }
+                }
+            }
+        }
+    }
 }
 
 // Export
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = Game;
+}
+
+// Browser global
+if (typeof window !== 'undefined') {
+    window.Game = Game;
 }

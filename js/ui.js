@@ -112,7 +112,88 @@ class UI {
     }
 }
 
+class DialogueBox {
+    constructor() {
+        this.queue = [];
+        this.currentIndex = 0;
+        this.active = false;
+        this.callback = null;
+        this.charIndex = 0;
+        this.textSpeed = 30; // Characters per second
+        this.currentText = '';
+    }
+
+    show(dialogues, onComplete = null) {
+        this.queue = Array.isArray(dialogues) ? dialogues : [dialogues];
+        this.currentIndex = 0;
+        this.active = true;
+        this.onComplete = onComplete;
+        this.charIndex = 0;
+        this.currentText = '';
+        this.startDialogue(this.queue[this.currentIndex]);
+    }
+
+    startDialogue(dialogue) {
+        this.charIndex = 0;
+        this.currentText = '';
+        this.textSpeed = dialogue.speed || 30;
+    }
+
+    update(deltaTime) {
+        if (!this.active || this.isFinished()) return;
+
+        const dialogue = this.getCurrentDialogue();
+        if (dialogue && this.currentText.length < dialogue.text.length) {
+            this.charIndex += this.textSpeed * deltaTime;
+            this.currentText = dialogue.text.substring(0, Math.floor(this.charIndex));
+        }
+    }
+
+    advance() {
+        if (this.isFinished()) {
+            this.currentIndex++;
+            if (this.currentIndex >= this.queue.length) {
+                this.active = false;
+                if (this.onComplete) {
+                    this.onComplete();
+                    this.onComplete = null;
+                }
+            } else {
+                this.startDialogue(this.queue[this.currentIndex]);
+            }
+        } else {
+            this.currentText = this.getCurrentDialogue().text;
+        }
+    }
+
+    handleChoice(choiceIndex) {
+        const dialogue = this.getCurrentDialogue();
+        if (dialogue && dialogue.choices && dialogue.choices[choiceIndex]) {
+            const choice = dialogue.choices[choiceIndex];
+            if (choice.callback) {
+                choice.callback();
+            }
+        }
+    }
+
+    isFinished() {
+        const dialogue = this.getCurrentDialogue();
+        return !dialogue || this.currentText.length === dialogue.text.length;
+    }
+
+    getCurrentDialogue() {
+        if (this.active && this.currentIndex < this.queue.length) {
+            return this.queue[this.currentIndex];
+        }
+        return null;
+    }
+
+    isActive() {
+        return this.active;
+    }
+}
+
 // Export
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = UI;
+    module.exports = { UI, DialogueBox };
 }

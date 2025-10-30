@@ -68,11 +68,12 @@ class IntroScene {
 }
 
 class StarterSelection {
-    constructor() {
+    constructor(game) {
+        this.game = game;
         this.selection = 0;
         this.confirmed = false;
         this.selectedTrain = null;
-        this.phase = 'intro'; // 'intro', 'selection', 'post-selection'
+        this.phase = 'intro'; // 'intro', 'selection', 'confirmation', 'post-selection'
 
         this.introDialogue = [
             {
@@ -170,10 +171,25 @@ class StarterSelection {
     }
 
     moveSelection(direction) {
+        if (this.phase !== 'selection') return;
         if (direction === 'left') {
             this.selection = (this.selection - 1 + 3) % 3;
         } else if (direction === 'right') {
             this.selection = (this.selection + 1) % 3;
+        }
+    }
+
+    confirmSelection() {
+        if (this.phase === 'selection') {
+            this.phase = 'confirmation';
+        } else if (this.phase === 'confirmation') {
+            this.confirm();
+        }
+    }
+
+    cancelSelection() {
+        if (this.phase === 'confirmation') {
+            this.phase = 'selection';
         }
     }
 
@@ -196,7 +212,20 @@ class StarterSelection {
         // Replace [TRAIN] placeholder in registration line
         this.postSelectionDialogue[2].text = this.postSelectionDialogue[2].text.replace('[TRAIN]', this.selectedTrain.name);
 
-        return new Train(this.selectedTrain.id, 5);
+        const starterTrain = new Train(this.selectedTrain.id, 5);
+        if (this.game && this.game.player) {
+            this.game.player.addTrain(starterTrain);
+
+            // Give player starting items
+            if (!this.game.player.items) {
+                this.game.player.items = {};
+            }
+            this.game.player.items.pokeball = 5;  // Trainballs
+            this.game.player.items.potion = 2;     // Potions
+        }
+
+        this.phase = 'post-selection';
+        console.log(`Selected ${starterTrain.species.name}!`);
     }
 
     getCurrentStarter() {
@@ -230,45 +259,6 @@ class StarterSelection {
     }
 }
 
-class DialogueBox {
-    constructor() {
-        this.queue = [];
-        this.currentIndex = 0;
-        this.active = false;
-        this.callback = null;
-    }
-
-    show(dialogues, callback = null) {
-        this.queue = Array.isArray(dialogues) ? dialogues : [dialogues];
-        this.currentIndex = 0;
-        this.active = true;
-        this.callback = callback;
-    }
-
-    advance() {
-        this.currentIndex++;
-        if (this.currentIndex >= this.queue.length) {
-            this.active = false;
-            if (this.callback) {
-                this.callback();
-                this.callback = null;
-            }
-        }
-    }
-
-    getCurrentDialogue() {
-        if (this.active && this.currentIndex < this.queue.length) {
-            return this.queue[this.currentIndex];
-        }
-        return null;
-    }
-
-    isActive() {
-        return this.active;
-    }
-}
-
-// Export
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { IntroScene, StarterSelection, DialogueBox };
+    module.exports = { IntroScene, StarterSelection };
 }

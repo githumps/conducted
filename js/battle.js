@@ -19,6 +19,7 @@ class Battle {
 
         this.battleEnded = false;
         this.playerWon = false;
+        this.onVictory = null;
 
         this.animationQueue = [];
         this.animationTimer = 0;
@@ -250,6 +251,10 @@ class Battle {
         this.addMessage(`${this.playerActive.species.name} gained ${expGained} EXP!`);
 
         this.playerActive.gainExp(expGained);
+
+        if (this.onVictory) {
+            this.onVictory();
+        }
 
         this.state = CONSTANTS.BATTLE_STATES.VICTORY;
         this.battleEnded = true;
