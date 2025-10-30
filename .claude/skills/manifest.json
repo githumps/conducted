@@ -1,0 +1,104 @@
+{
+  "skills": [
+    {
+      "name": "fs.read",
+      "description": "Read file contents with optional line range (e.g. lines 100-150)",
+      "parameters": {
+        "path": "string (required) - File path relative to repo root",
+        "start_line": "number (optional) - First line to read",
+        "end_line": "number (optional) - Last line to read"
+      },
+      "usage": "Read small file segments to keep context lean"
+    },
+    {
+      "name": "fs.write",
+      "description": "Apply minimal diffs to files; create if missing",
+      "parameters": {
+        "path": "string (required) - File path",
+        "content": "string (required) - New content or diff hunk",
+        "mode": "string (optional) - 'replace' | 'append' | 'insert'"
+      },
+      "usage": "Make surgical changes, not full rewrites"
+    },
+    {
+      "name": "fs.search",
+      "description": "Search repo for file paths or code patterns",
+      "parameters": {
+        "pattern": "string (required) - Glob pattern or regex",
+        "type": "string (optional) - 'path' | 'content'"
+      },
+      "usage": "Find duplicates, dead code, or specific functions"
+    },
+    {
+      "name": "git.issue.create",
+      "description": "Create GitHub issue with title/body/labels/milestone",
+      "parameters": {
+        "title": "string (required) - Issue title",
+        "body": "string (required) - Issue description with AC",
+        "labels": "array (optional) - Label names",
+        "milestone": "string (optional) - Milestone name"
+      },
+      "usage": "Offload memory to GitHub issues"
+    },
+    {
+      "name": "git.issue.update",
+      "description": "Comment on, close, or label existing issue",
+      "parameters": {
+        "issue_number": "number (required) - Issue #",
+        "action": "string (required) - 'comment' | 'close' | 'label'",
+        "content": "string (optional) - Comment text or labels"
+      },
+      "usage": "Update progress, close completed issues"
+    },
+    {
+      "name": "git.pr.open",
+      "description": "Open pull request linking issues",
+      "parameters": {
+        "title": "string (required) - PR title",
+        "body": "string (required) - Description with 'Fixes #N'",
+        "branch": "string (required) - Source branch name"
+      },
+      "usage": "One PR per issue, max 150 lines"
+    },
+    {
+      "name": "game.validate_trains",
+      "description": "Validate train data JSON schema",
+      "parameters": {
+        "file": "string (optional) - Path to train data, defaults to js/train-data.js"
+      },
+      "usage": "Ensure no corrupted stats/evolutions"
+    },
+    {
+      "name": "game.test_battle",
+      "description": "Run deterministic battle with fixed RNG seed",
+      "parameters": {
+        "train1": "string (required) - Train species ID",
+        "train2": "string (required) - Opponent species ID",
+        "seed": "number (required) - RNG seed for reproducibility"
+      },
+      "usage": "Test battle calculations deterministically"
+    },
+    {
+      "name": "game.validate_maps",
+      "description": "Check map data for invalid tiles, broken connections",
+      "parameters": {
+        "map_name": "string (optional) - Specific map, or all if omitted"
+      },
+      "usage": "Catch map bugs before deploy"
+    },
+    {
+      "name": "ci.run",
+      "description": "Run CI scripts: test, lint, build",
+      "parameters": {
+        "script": "string (required) - npm script name (test/lint/build)"
+      },
+      "usage": "Verify builds before merge"
+    }
+  ],
+  "notes": [
+    "Skills are called by agents to perform specific tasks",
+    "Always prefer skills over manual bash commands",
+    "Skills enforce constraints (line limits, token budgets, etc.)",
+    "Custom CONDUCTED skills: game.validate_trains, game.test_battle, game.validate_maps"
+  ]
+}
