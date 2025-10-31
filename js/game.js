@@ -271,7 +271,8 @@ class Game {
         // Only check in tall grass tiles and if cooldown is over
         if (!this.currentMap) return;
 
-        const tile = this.currentMap.getTile(this.player.x, this.player.y);
+        // Use targetX/targetY because x/y haven't updated yet when this is called
+        const tile = this.currentMap.getTile(this.player.targetX, this.player.targetY);
 
         // Check if in tall grass (TILE_TYPES.TALL_GRASS = 2)
         if (tile === 2 && this.encounterCooldown <= 0 && this.player.party.length > 0) {
@@ -284,19 +285,22 @@ class Game {
     checkForDoor() {
         if (!this.currentMap) return;
 
-        const tile = this.currentMap.getTile(this.player.x, this.player.y);
-        if (this.currentMap.isDoor(this.player.x, this.player.y)) {
+        // Use targetX/targetY because x/y haven't updated yet when this is called
+        const checkX = this.player.targetX;
+        const checkY = this.player.targetY;
+
+        if (this.currentMap.isDoor(checkX, checkY)) {
             // Door transitions with correct spawn coordinates
-            if (this.currentMap.name === 'piston_town' && this.player.x === 9 && this.player.y === 10) {
+            if (this.currentMap.name === 'piston_town' && checkX === 9 && checkY === 10) {
                 // Enter Professor's Lab, spawn at interior exit door
                 this.changeMap('professors_lab', 5, 9);
-            } else if (this.currentMap.name === 'professors_lab' && this.player.x === 5 && this.player.y === 9) {
+            } else if (this.currentMap.name === 'professors_lab' && checkX === 5 && checkY === 9) {
                 // Exit Lab, spawn one tile below entrance in Piston Town
                 this.changeMap('piston_town', 9, 11);
-            } else if (this.currentMap.name === 'coal_harbor' && this.player.x === 22 && this.player.y === 21) {
+            } else if (this.currentMap.name === 'coal_harbor' && checkX === 22 && checkY === 21) {
                 // Enter Coal Harbor Gym, spawn at interior exit door
                 this.changeMap('coal_harbor_gym', 7, 14);
-            } else if (this.currentMap.name === 'coal_harbor_gym' && this.player.x === 7 && this.player.y === 14) {
+            } else if (this.currentMap.name === 'coal_harbor_gym' && checkX === 7 && checkY === 14) {
                 // Exit Gym, spawn one tile below entrance in Coal Harbor
                 this.changeMap('coal_harbor', 22, 22);
             }
