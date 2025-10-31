@@ -61,6 +61,10 @@ class GameMap {
         const speciesId = Utils.randomInt(1, 26); // First 26 trains
         return new Train(speciesId, level);
     }
+
+    getNPCAt(x, y) {
+        return this.npcs.find(npc => npc.x === x && npc.y === y);
+    }
 }
 
 // Create starter map

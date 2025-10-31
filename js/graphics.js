@@ -32,22 +32,16 @@ class Graphics {
     }
 
     updateCamera(player, map) {
-        // Center camera on player
-        const targetX = player.x - Math.floor(this.screenTilesX / 2);
-        const targetY = player.y - Math.floor(this.screenTilesY / 2);
+        // Use display position for smooth camera during player movement
+        const displayPos = player.getDisplayPosition();
 
-        // Clamp camera to map bounds
-        this.camera.targetX = Math.max(0, Math.min(targetX, map.width - this.screenTilesX));
-        this.camera.targetY = Math.max(0, Math.min(targetY, map.height - this.screenTilesY));
+        // Center camera on player (using interpolated position for smooth scrolling)
+        const targetX = displayPos.x - Math.floor(this.screenTilesX / 2);
+        const targetY = displayPos.y - Math.floor(this.screenTilesY / 2);
 
-        // Smooth camera movement
-        if (this.camera.smooth) {
-            this.camera.x += (this.camera.targetX - this.camera.x) * 0.1;
-            this.camera.y += (this.camera.targetY - this.camera.y) * 0.1;
-        } else {
-            this.camera.x = this.camera.targetX;
-            this.camera.y = this.camera.targetY;
-        }
+        // Clamp camera to map bounds and set directly (no extra smoothing needed)
+        this.camera.x = Math.max(0, Math.min(targetX, map.width - this.screenTilesX));
+        this.camera.y = Math.max(0, Math.min(targetY, map.height - this.screenTilesY));
     }
 
     clear() {

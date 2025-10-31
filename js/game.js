@@ -202,7 +202,8 @@ class Game {
                 this.checkForEncounter();
                 this.checkForDoor();
             } else if (action === 'start') {
-                this.state = CONSTANTS.STATES.TITLE;
+                // Open menu instead of restarting game
+                this.state = CONSTANTS.STATES.MENU;
             } else if (action === 'a') {
                 // Check for NPC interaction
                 this.checkInteraction();
@@ -635,9 +636,14 @@ class Game {
         // Draw map with camera
         this.graphics.drawMap(this.currentMap, this.graphics.camera);
 
-        // Draw NPCs
+        // Draw NPCs (skip NPCs inside buildings or behind walls)
         for (const npc of this.currentMap.npcs) {
-            this.graphics.drawNPC(npc, this.graphics.camera);
+            const npcTile = this.currentMap.getTile(npc.x, npc.y);
+            // Don't render NPCs on building/wall/station/cave tiles (they're inside)
+            const occludedTiles = [0, 5, 7, 8, 11]; // VOID, WALL, BUILDING, STATION, CAVE
+            if (!occludedTiles.includes(npcTile)) {
+                this.graphics.drawNPC(npc, this.graphics.camera);
+            }
         }
 
         // Draw player
