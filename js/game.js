@@ -286,14 +286,18 @@ class Game {
 
         const tile = this.currentMap.getTile(this.player.x, this.player.y);
         if (this.currentMap.isDoor(this.player.x, this.player.y)) {
-            // Simple example: hardcode a transition
+            // Door transitions with correct spawn coordinates
             if (this.currentMap.name === 'piston_town' && this.player.x === 9 && this.player.y === 10) {
-                this.changeMap('professors_lab', 5, 8);
+                // Enter Professor's Lab, spawn at interior exit door
+                this.changeMap('professors_lab', 5, 9);
             } else if (this.currentMap.name === 'professors_lab' && this.player.x === 5 && this.player.y === 9) {
-                this.changeMap('piston_town', 20, 13);
+                // Exit Lab, spawn one tile below entrance in Piston Town
+                this.changeMap('piston_town', 9, 11);
             } else if (this.currentMap.name === 'coal_harbor' && this.player.x === 22 && this.player.y === 21) {
-                this.changeMap('coal_harbor_gym', 7, 13);
+                // Enter Coal Harbor Gym, spawn at interior exit door
+                this.changeMap('coal_harbor_gym', 7, 14);
             } else if (this.currentMap.name === 'coal_harbor_gym' && this.player.x === 7 && this.player.y === 14) {
+                // Exit Gym, spawn one tile below entrance in Coal Harbor
                 this.changeMap('coal_harbor', 22, 22);
             }
         }

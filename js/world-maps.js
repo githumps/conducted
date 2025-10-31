@@ -59,13 +59,17 @@ class WorldMap {
 
     isWalkable(x, y) {
         const tile = this.getTile(x, y);
+        // Doors are always walkable (for building entry)
         if (tile === TILE_TYPES.DOOR) {
             return true;
         }
+        // Block: VOID, WALL, WATER, BUILDING, STATION, CAVE
         return tile !== TILE_TYPES.VOID &&
                tile !== TILE_TYPES.WALL &&
                tile !== TILE_TYPES.WATER &&
-               tile !== TILE_TYPES.BUILDING;
+               tile !== TILE_TYPES.BUILDING &&
+               tile !== TILE_TYPES.STATION &&
+               tile !== TILE_TYPES.CAVE;
     }
 
     isDoor(x, y) {
