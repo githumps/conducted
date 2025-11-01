@@ -819,6 +819,8 @@ class Graphics {
             this.drawBattleMenu(battle);
         } else if (battle.state === CONSTANTS.BATTLE_STATES.FIGHT) {
             this.drawMoveSelection(battle);
+        } else if (battle.state === CONSTANTS.BATTLE_STATES.ITEM) {
+            this.drawItemMenu(battle);
         } else {
             this.drawMessage(battle.getCurrentMessage());
         }
@@ -903,7 +905,7 @@ class Graphics {
         this.ctx.strokeRect(x, y, width, height);
 
         // Menu options
-        const options = ['FIGHT', 'BAG', 'TRAIN', 'RUN'];
+        const options = ['FIGHT', 'ITEM', 'TRAIN', 'RUN'];
         const optionWidth = width / 2;
         const optionHeight = height / 2;
 
@@ -971,6 +973,55 @@ class Graphics {
                 this.ctx.fillText(`Type: ${moveData.type}`, optionX + 24, optionY + 60);
                 this.ctx.font = 'bold 20px monospace';
             }
+        }
+    }
+
+    drawItemMenu(battle) {
+        const margin = 20;
+        const height = 140;
+        const width = CONSTANTS.CANVAS_WIDTH - (margin * 2);
+        const x = margin;
+        const y = CONSTANTS.CANVAS_HEIGHT - height - margin;
+
+        // Menu background
+        this.ctx.fillStyle = CONSTANTS.COLORS.WHITE;
+        this.ctx.fillRect(x, y, width, height);
+        this.ctx.strokeStyle = CONSTANTS.COLORS.BLACK;
+        this.ctx.lineWidth = 4;
+        this.ctx.strokeRect(x, y, width, height);
+
+        // Get items
+        const items = battle.getUsableItems();
+
+        if (items.length === 0) {
+            // No items
+            this.ctx.fillStyle = CONSTANTS.COLORS.BLACK;
+            this.ctx.font = '20px monospace';
+            this.ctx.fillText('No items available!', x + 20, y + 70);
+            return;
+        }
+
+        // Draw items in a vertical list
+        this.ctx.font = 'bold 20px monospace';
+        const lineHeight = 35;
+
+        for (let i = 0; i < items.length; i++) {
+            const itemY = y + 20 + i * lineHeight;
+
+            // Highlight selected item
+            if (i === battle.itemSelection) {
+                this.ctx.fillStyle = CONSTANTS.COLORS.UI_HIGHLIGHT;
+                this.ctx.fillRect(x + 10, itemY - 22, width - 20, lineHeight - 5);
+            }
+
+            // Draw item name and quantity
+            this.ctx.fillStyle = i === battle.itemSelection ? CONSTANTS.COLORS.WHITE : CONSTANTS.COLORS.BLACK;
+            this.ctx.fillText(items[i].displayName, x + 24, itemY);
+
+            // Draw quantity
+            this.ctx.font = '18px monospace';
+            this.ctx.fillText(`x${items[i].quantity}`, x + width - 80, itemY);
+            this.ctx.font = 'bold 20px monospace';
         }
     }
 

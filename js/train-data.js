@@ -239,10 +239,27 @@ const TRAIN_NAMES = {
 };
 
 // Generate remaining trains (27-151) with clever names!
+// Catch rates follow Pokemon Gen 1 logic:
+// - Starters/legendaries: 45
+// - Common trains: 190-255
+// - Uncommon: 90-190
 for (let i = 27; i <= 151; i++) {
     const types = [Utils.randomChoice(CONSTANTS.TYPES)];
     if (Math.random() > 0.7) {
         types.push(Utils.randomChoice(CONSTANTS.TYPES.filter(t => t !== types[0])));
+    }
+
+    // Determine catch rate based on train ID
+    // Legendary trains (150-151): 45
+    // Uncommon trains (100-149): 90-190
+    // Common trains (27-99): 190-255
+    let catchRate;
+    if (i >= 150) {
+        catchRate = 45; // Legendary
+    } else if (i >= 100) {
+        catchRate = Utils.randomInt(90, 190); // Uncommon
+    } else {
+        catchRate = Utils.randomInt(190, 255); // Common
     }
 
     TRAIN_SPECIES[i] = {
@@ -262,7 +279,7 @@ for (let i = 27; i <= 151; i++) {
             { level: 20, move: "Body Slam" }
         ],
         evolution: null,
-        catchRate: Utils.randomInt(45, 255),
+        catchRate: catchRate,
         expYield: Utils.randomInt(50, 250)
     };
 }

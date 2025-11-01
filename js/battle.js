@@ -3,10 +3,19 @@
  */
 
 class Battle {
-    constructor(playerTrains, enemyTrains, isWild = true) {
+    constructor(playerTrains, enemyTrains, isWild = true, trainerNPC = null) {
         this.playerTrains = playerTrains;
         this.enemyTrains = enemyTrains;
         this.isWild = isWild;
+        this.trainerNPC = trainerNPC;
+
+        // If trainerNPC is actually playerInventory (backwards compatibility)
+        if (trainerNPC && !trainerNPC.name && typeof trainerNPC === 'object') {
+            this.playerInventory = trainerNPC;
+            this.trainerNPC = null;
+        } else {
+            this.playerInventory = null;
+        }
 
         this.playerActive = playerTrains[0];
         this.enemyActive = enemyTrains[0];
@@ -16,10 +25,12 @@ class Battle {
         this.currentMessage = 0;
         this.menuSelection = 0;
         this.moveSelection = 0;
+        this.itemSelection = 0;
 
         this.battleEnded = false;
         this.playerWon = false;
         this.onVictory = null;
+        this.caughtTrain = null;
 
         this.animationQueue = [];
         this.animationTimer = 0;
@@ -29,7 +40,9 @@ class Battle {
             this.addMessage(`A wild ${this.enemyActive.species.name} appeared!`);
             this.addMessage(`Go! ${this.playerActive.species.name}!`);
         } else {
-            this.addMessage(`Conductor sent out ${this.enemyActive.species.name}!`);
+            const trainerName = this.trainerNPC ? this.trainerNPC.name : 'Conductor';
+            this.addMessage(`${trainerName} wants to battle!`);
+            this.addMessage(`${trainerName} sent out ${this.enemyActive.species.name}!`);
             this.addMessage(`Go! ${this.playerActive.species.name}!`);
         }
     }
@@ -102,6 +115,10 @@ class Battle {
                 this.handleFightInput(action);
                 break;
 
+            case CONSTANTS.BATTLE_STATES.ITEM:
+                this.handleItemInput(action);
+                break;
+
             case CONSTANTS.BATTLE_STATES.MESSAGE:
                 this.currentMessage++;
                 if (this.currentMessage >= this.messages.length) {
@@ -125,10 +142,15 @@ class Battle {
                     this.moveSelection = 0;
                     break;
                 case 1:
-                    // BAG - not implemented
-                    this.addMessage("No items available!");
-                    this.state = CONSTANTS.BATTLE_STATES.MESSAGE;
-                    this.currentMessage = 0;
+                    // ITEM
+                    if (this.playerInventory) {
+                        this.state = CONSTANTS.BATTLE_STATES.ITEM;
+                        this.itemSelection = 0;
+                    } else {
+                        this.addMessage("No items available!");
+                        this.state = CONSTANTS.BATTLE_STATES.MESSAGE;
+                        this.currentMessage = 0;
+                    }
                     break;
                 case 2:
                     // POKEMON - not implemented
@@ -252,6 +274,20 @@ class Battle {
 
         this.playerActive.gainExp(expGained);
 
+        // Award money for trainer battles
+        if (!this.isWild && this.trainerNPC) {
+            // Calculate money: baseReward × highestTrainLevel × 2
+            const highestLevel = Math.max(...this.trainerNPC.party.map(t => t.level));
+            const baseReward = this.trainerNPC.baseReward ||
+                              (this.trainerNPC.type === 'gym_leader' ? 100 : 50);
+            const moneyEarned = baseReward * highestLevel * 2;
+
+            this.addMessage(`You won $${moneyEarned}!`);
+
+            // Store money to be awarded by onVictory callback
+            this.moneyEarned = moneyEarned;
+        }
+
         if (this.onVictory) {
             this.onVictory();
         }
@@ -298,6 +334,138 @@ class Battle {
             return this.messages[this.currentMessage];
         }
         return "";
+    }
+
+    handleItemInput(action) {
+        const items = this.getUsableItems();
+
+        if (action === 'up' && this.itemSelection > 0) {
+            this.itemSelection--;
+        } else if (action === 'down' && this.itemSelection < items.length - 1) {
+            this.itemSelection++;
+        } else if (action === 'a') {
+            if (items.length > 0) {
+                this.useItem(items[this.itemSelection]);
+            }
+        } else if (action === 'b') {
+            this.state = CONSTANTS.BATTLE_STATES.MENU;
+        }
+    }
+
+    getUsableItems() {
+        if (!this.playerInventory) return [];
+
+        const items = [];
+        if (this.playerInventory.potion > 0) {
+            items.push({ name: 'potion', displayName: 'Potion', quantity: this.playerInventory.potion });
+        }
+        if (this.playerInventory.super_potion > 0) {
+            items.push({ name: 'super_potion', displayName: 'Super Potion', quantity: this.playerInventory.super_potion });
+        }
+        if (this.playerInventory.pokeball > 0) {
+            items.push({ name: 'pokeball', displayName: 'Trainball', quantity: this.playerInventory.pokeball });
+        }
+
+        return items;
+    }
+
+    useItem(item) {
+        if (item.name === 'potion' || item.name === 'super_potion') {
+            this.usePotion(item.name);
+        } else if (item.name === 'pokeball') {
+            this.useTrainball();
+        }
+    }
+
+    usePotion(potionType) {
+        const healAmount = potionType === 'potion' ? 20 : 50;
+
+        // Check if train is at full HP
+        if (this.playerActive.currentHP === this.playerActive.maxHP) {
+            this.addMessage("HP is already full!");
+            this.state = CONSTANTS.BATTLE_STATES.MESSAGE;
+            this.currentMessage = 0;
+            return;
+        }
+
+        // Use the potion
+        this.state = CONSTANTS.BATTLE_STATES.ANIMATION;
+        const displayName = potionType === 'potion' ? 'Potion' : 'Super Potion';
+        this.addMessage(`You used a ${displayName}!`);
+
+        const oldHP = this.playerActive.currentHP;
+        this.playerActive.heal(healAmount);
+        const actualHealed = this.playerActive.currentHP - oldHP;
+
+        this.playerInventory[potionType]--;
+
+        this.animationQueue.push({
+            callback: () => {
+                this.addMessage(`${this.playerActive.species.name} recovered ${actualHealed} HP!`);
+
+                // Enemy turn
+                this.executeEnemyMove();
+            }
+        });
+    }
+
+    useTrainball() {
+        // Can't catch trainer's trains
+        if (!this.isWild) {
+            this.addMessage("Can't catch a trainer's train!");
+            this.state = CONSTANTS.BATTLE_STATES.MESSAGE;
+            this.currentMessage = 0;
+            return;
+        }
+
+        this.state = CONSTANTS.BATTLE_STATES.ANIMATION;
+        this.addMessage("You threw a Trainball!");
+
+        this.playerInventory.pokeball--;
+
+        // Gen 1 capture formula
+        const catchRate = this.enemyActive.species.catchRate || 45;
+        const maxHP = this.enemyActive.maxHP;
+        const currentHP = this.enemyActive.currentHP;
+
+        // Formula: ((HPmax * 3 - HP * 2) * CatchRate) / (HPmax * 3)
+        const a = Math.floor(((maxHP * 3 - currentHP * 2) * catchRate) / (maxHP * 3));
+
+        this.animationQueue.push({
+            callback: () => {
+                // Simplified shake checks (4 checks like Gen 1)
+                let shakes = 0;
+                for (let i = 0; i < 4; i++) {
+                    const b = Utils.randomInt(0, 255);
+                    if (b < a) {
+                        shakes++;
+                    } else {
+                        break;
+                    }
+                }
+
+                if (shakes === 4) {
+                    // Caught!
+                    this.addMessage(`Got it! ${this.enemyActive.species.name} was caught!`);
+                    this.caughtTrain = this.enemyActive;
+                    this.state = CONSTANTS.BATTLE_STATES.VICTORY;
+                    this.battleEnded = true;
+                    this.playerWon = true;
+                } else {
+                    // Failed
+                    const shakeMessages = [
+                        "Oh no! The train broke free!",
+                        "Aww! It appeared to be caught!",
+                        "Aargh! Almost had it!",
+                        "Shoot! It was so close too!"
+                    ];
+                    this.addMessage(shakeMessages[shakes] || "Oh no! The train broke free!");
+
+                    // Enemy turn
+                    this.executeEnemyMove();
+                }
+            }
+        });
     }
 }
 

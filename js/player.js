@@ -130,6 +130,10 @@ class Player {
         }
     }
 
+    addMoney(amount) {
+        this.money = Math.max(0, this.money + amount);
+    }
+
     earnBadge(badgeName) {
         if (!this.badges.includes(badgeName)) {
             this.badges.push(badgeName);

@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Item System Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            max-width: 1000px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .test-section {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border: 2px solid #333;
+            border-radius: 5px;
+        }
+        .pass { color: green; font-weight: bold; }
+        .fail { color: red; font-weight: bold; }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            background: #0070C0;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        button:hover {
+            background: #005a9c;
+        }
+        .results {
+            background: #e8f4f8;
+            padding: 10px;
+            margin-top: 10px;
+            border: 1px solid #333;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚂 Item System Test - CONDUCTED</h1>
+
+    <div class="test-section">
+        <h2>Test 1: Potion Healing</h2>
+        <p>Test that Potion heals 20 HP and decreases inventory</p>
+        <button onclick="testPotionHealing()">Run Test</button>
+        <div id="test1-results" class="results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 2: Super Potion Healing</h2>
+        <p>Test that Super Potion heals 50 HP and decreases inventory</p>
+        <button onclick="testSuperPotionHealing()">Run Test</button>
+        <div id="test2-results" class="results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 3: Can't Use Potion at Full HP</h2>
+        <p>Test that using a Potion at full HP shows error message</p>
+        <button onclick="testPotionAtFullHP()">Run Test</button>
+        <div id="test3-results" class="results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 4: Trainball Capture (High Catch Rate)</h2>
+        <p>Test capturing a common train with Trainball</p>
+        <button onclick="testTrainballCapture()">Run Test (10 attempts)</button>
+        <div id="test4-results" class="results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 5: Can't Catch Trainer's Train</h2>
+        <p>Test that using Trainball in trainer battle shows error</p>
+        <button onclick="testNoCatchTrainer()">Run Test</button>
+        <div id="test5-results" class="results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 6: Item Menu Display</h2>
+        <p>Test that item menu shows correct items and quantities</p>
+        <button onclick="testItemMenu()">Run Test</button>
+        <div id="test6-results" class="results"></div>
+    </div>
+
+    <!-- Load all game scripts -->
+    <script src="js/constants.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/moves.js"></script>
+    <script src="js/train-data.js"></script>
+    <script src="js/train.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/battle.js"></script>
+
+    <script>
+        function log(elementId, message, isPass = null) {
+            const el = document.getElementById(elementId);
+            const prefix = isPass === true ? '<span class="pass">✓ PASS:</span> ' :
+                          isPass === false ? '<span class="fail">✗ FAIL:</span> ' : '';
+            el.innerHTML += prefix + message + '\n';
+        }
+
+        function testPotionHealing() {
+            const resultId = 'test1-results';
+            document.getElementById(resultId).innerHTML = '';
+
+            try {
+                // Create a train with damaged HP
+                const train = new Train(1, 5); // Steamini level 5
+                const maxHP = train.maxHP;
+                train.currentHP = maxHP - 30; // Damage it
+                const initialHP = train.currentHP;
+
+                // Create player inventory
+                const inventory = { potion: 3, super_potion: 0, pokeball: 0 };
+
+                // Create battle
+                const battle = new Battle([train], [new Train(10, 5)], true, inventory);
+                battle.state = 'item'; // Skip intro
+
+                log(resultId, `Initial HP: ${initialHP}/${maxHP}`);
+                log(resultId, `Initial Potions: ${inventory.potion}`);
+
+                // Use potion
+                battle.usePotion('potion');
+
+                log(resultId, `HP after Potion: ${train.currentHP}/${maxHP}`);
+                log(resultId, `Potions remaining: ${inventory.potion}`);
+
+                // Verify
+                const healed = train.currentHP - initialHP;
+                if (healed === 20) {
+                    log(resultId, `Healed ${healed} HP`, true);
+                } else {
+                    log(resultId, `Expected to heal 20 HP, but healed ${healed} HP`, false);
+                }
+
+                if (inventory.potion === 2) {
+                    log(resultId, 'Inventory decreased correctly', true);
+                } else {
+                    log(resultId, `Expected 2 potions, got ${inventory.potion}`, false);
+                }
+
+            } catch (error) {
+                log(resultId, `Error: ${error.message}`, false);
+            }
+        }
+
+        function testSuperPotionHealing() {
+            const resultId = 'test2-results';
+            document.getElementById(resultId).innerHTML = '';
+
+            try {
+                const train = new Train(1, 5);
+                const maxHP = train.maxHP;
+                train.currentHP = maxHP - 60; // Damage significantly
+                const initialHP = train.currentHP;
+
+                const inventory = { potion: 0, super_potion: 2, pokeball: 0 };
+                const battle = new Battle([train], [new Train(10, 5)], true, inventory);
+
+                log(resultId, `Initial HP: ${initialHP}/${maxHP}`);
+                log(resultId, `Initial Super Potions: ${inventory.super_potion}`);
+
+                battle.usePotion('super_potion');
+
+                log(resultId, `HP after Super Potion: ${train.currentHP}/${maxHP}`);
+                log(resultId, `Super Potions remaining: ${inventory.super_potion}`);
+
+                const healed = train.currentHP - initialHP;
+                if (healed === 50) {
+                    log(resultId, `Healed ${healed} HP`, true);
+                } else {
+                    log(resultId, `Expected to heal 50 HP, but healed ${healed} HP`, false);
+                }
+
+                if (inventory.super_potion === 1) {
+                    log(resultId, 'Inventory decreased correctly', true);
+                } else {
+                    log(resultId, `Expected 1 super potion, got ${inventory.super_potion}`, false);
+                }
+
+            } catch (error) {
+                log(resultId, `Error: ${error.message}`, false);
+            }
+        }
+
+        function testPotionAtFullHP() {
+            const resultId = 'test3-results';
+            document.getElementById(resultId).innerHTML = '';
+
+            try {
+                const train = new Train(1, 5);
+                train.currentHP = train.maxHP; // Full HP
+
+                const inventory = { potion: 1, super_potion: 0, pokeball: 0 };
+                const battle = new Battle([train], [new Train(10, 5)], true, inventory);
+
+                log(resultId, `HP: ${train.currentHP}/${train.maxHP} (Full)`);
+                log(resultId, `Potions: ${inventory.potion}`);
+
+                battle.usePotion('potion');
+
+                log(resultId, `Messages: ${battle.messages.join(', ')}`);
+
+                if (battle.messages.includes("HP is already full!")) {
+                    log(resultId, 'Correct error message shown', true);
+                } else {
+                    log(resultId, 'Expected "HP is already full!" message', false);
+                }
+
+                if (inventory.potion === 1) {
+                    log(resultId, 'Potion not consumed (correct)', true);
+                } else {
+                    log(resultId, 'Potion was consumed (incorrect)', false);
+                }
+
+            } catch (error) {
+                log(resultId, `Error: ${error.message}`, false);
+            }
+        }
+
+        function testTrainballCapture() {
+            const resultId = 'test4-results';
+            document.getElementById(resultId).innerHTML = '';
+
+            try {
+                let captures = 0;
+                let attempts = 10;
+
+                for (let i = 0; i < attempts; i++) {
+                    const playerTrain = new Train(1, 5);
+                    const wildTrain = new Train(10, 5); // Trackie - catchRate 255
+                    const inventory = { potion: 0, super_potion: 0, pokeball: 1 };
+
+                    const battle = new Battle([playerTrain], [wildTrain], true, inventory);
+
+                    // Damage wild train to increase catch rate
+                    wildTrain.currentHP = Math.floor(wildTrain.maxHP * 0.3);
+
+                    battle.useTrainball();
+
+                    // Execute animation callback to simulate capture attempt
+                    if (battle.animationQueue.length > 0) {
+                        battle.animationQueue[0].callback();
+                    }
+
+                    if (battle.caughtTrain) {
+                        captures++;
+                    }
+                }
+
+                log(resultId, `Capture attempts: ${attempts}`);
+                log(resultId, `Successful captures: ${captures}`);
+                log(resultId, `Success rate: ${(captures/attempts*100).toFixed(1)}%`);
+
+                if (captures >= 5) {
+                    log(resultId, 'Capture rate seems reasonable for high catch rate train', true);
+                } else {
+                    log(resultId, 'Capture rate seems too low (might be okay due to RNG)', null);
+                }
+
+            } catch (error) {
+                log(resultId, `Error: ${error.message}`, false);
+            }
+        }
+
+        function testNoCatchTrainer() {
+            const resultId = 'test5-results';
+            document.getElementById(resultId).innerHTML = '';
+
+            try {
+                const playerTrain = new Train(1, 5);
+                const trainerTrain = new Train(2, 5);
+                const inventory = { potion: 0, super_potion: 0, pokeball: 1 };
+
+                // Create trainer battle (isWild = false)
+                const battle = new Battle([playerTrain], [trainerTrain], false, inventory);
+
+                log(resultId, `Is wild battle: ${battle.isWild}`);
+                log(resultId, `Trainballs: ${inventory.pokeball}`);
+
+                battle.useTrainball();
+
+                log(resultId, `Messages: ${battle.messages.join(', ')}`);
+
+                if (battle.messages.includes("Can't catch a trainer's train!")) {
+                    log(resultId, 'Correct error message shown', true);
+                } else {
+                    log(resultId, 'Expected "Can\'t catch a trainer\'s train!" message', false);
+                }
+
+                if (inventory.pokeball === 1) {
+                    log(resultId, 'Trainball not consumed (correct)', true);
+                } else {
+                    log(resultId, 'Trainball was consumed (incorrect)', false);
+                }
+
+            } catch (error) {
+                log(resultId, `Error: ${error.message}`, false);
+            }
+        }
+
+        function testItemMenu() {
+            const resultId = 'test6-results';
+            document.getElementById(resultId).innerHTML = '';
+
+            try {
+                const playerTrain = new Train(1, 5);
+                const wildTrain = new Train(10, 5);
+                const inventory = { potion: 3, super_potion: 2, pokeball: 5 };
+
+                const battle = new Battle([playerTrain], [wildTrain], true, inventory);
+
+                const items = battle.getUsableItems();
+
+                log(resultId, `Items in inventory:`);
+                items.forEach(item => {
+                    log(resultId, `  - ${item.displayName}: ${item.quantity}`);
+                });
+
+                let pass = true;
+
+                if (items.length !== 3) {
+                    log(resultId, `Expected 3 items, got ${items.length}`, false);
+                    pass = false;
+                }
+
+                const potion = items.find(i => i.name === 'potion');
+                if (!potion || potion.quantity !== 3) {
+                    log(resultId, 'Potion count incorrect', false);
+                    pass = false;
+                }
+
+                const superPotion = items.find(i => i.name === 'super_potion');
+                if (!superPotion || superPotion.quantity !== 2) {
+                    log(resultId, 'Super Potion count incorrect', false);
+                    pass = false;
+                }
+
+                const trainball = items.find(i => i.name === 'pokeball');
+                if (!trainball || trainball.quantity !== 5) {
+                    log(resultId, 'Trainball count incorrect', false);
+                    pass = false;
+                }
+
+                if (pass) {
+                    log(resultId, 'All items displayed correctly', true);
+                }
+
+                // Test empty inventory
+                const emptyInventory = { potion: 0, super_potion: 0, pokeball: 0 };
+                const emptyBattle = new Battle([playerTrain], [wildTrain], true, emptyInventory);
+                const emptyItems = emptyBattle.getUsableItems();
+
+                if (emptyItems.length === 0) {
+                    log(resultId, 'Empty inventory handled correctly', true);
+                } else {
+                    log(resultId, `Expected 0 items for empty inventory, got ${emptyItems.length}`, false);
+                }
+
+            } catch (error) {
+                log(resultId, `Error: ${error.message}`, false);
+            }
+        }
+    </script>
+</body>
+</html>

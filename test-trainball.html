@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trainball Capture Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .test-section {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border: 2px solid #333;
+            border-radius: 5px;
+        }
+        .pass { color: green; font-weight: bold; }
+        .fail { color: red; font-weight: bold; }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        #results {
+            background: #e8f4f8;
+            padding: 10px;
+            margin-top: 10px;
+            border: 1px solid #333;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚂 Trainball Capture Mechanics Test</h1>
+
+    <div class="test-section">
+        <h2>Test 1: Common Train (High Catch Rate)</h2>
+        <p>Train: Trackie (ID 10) - Catch Rate: 255 (easiest)</p>
+        <button onclick="testCommonTrain()">Run Test (10 attempts)</button>
+        <div id="test1-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 2: Starter Train (Low Catch Rate)</h2>
+        <p>Train: Steamini (ID 1) - Catch Rate: 45 (starter difficulty)</p>
+        <button onclick="testStarterTrain()">Run Test (10 attempts)</button>
+        <div id="test2-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 3: Low HP vs Full HP</h2>
+        <p>Compare catch rates at different HP levels</p>
+        <button onclick="testHPEffect()">Run Test</button>
+        <div id="test3-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 4: Trainer Battle Block</h2>
+        <p>Verify Trainballs can't be used in trainer battles</p>
+        <button onclick="testTrainerBlock()">Run Test</button>
+        <div id="test4-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 5: Full Party Scenario</h2>
+        <p>Verify message when party is full (6 trains)</p>
+        <button onclick="testFullParty()">Run Test</button>
+        <div id="test5-results"></div>
+    </div>
+
+    <script src="js/constants.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/train-data.js"></script>
+    <script src="js/moves.js"></script>
+    <script src="js/train.js"></script>
+    <script src="js/battle.js"></script>
+    <script src="js/player.js"></script>
+
+    <script>
+        function simulateCapture(train, attempts = 10) {
+            let successes = 0;
+            for (let i = 0; i < attempts; i++) {
+                const maxHP = train.maxHP;
+                const currentHP = train.currentHP;
+                const catchRate = train.species.catchRate;
+
+                // Gen 1 formula
+                const a = Math.floor(((maxHP * 3 - currentHP * 2) * catchRate) / (maxHP * 3));
+
+                let shakes = 0;
+                for (let j = 0; j < 4; j++) {
+                    const b = Utils.randomInt(0, 255);
+                    if (b < a) {
+                        shakes++;
+                    } else {
+                        break;
+                    }
+                }
+
+                if (shakes === 4) {
+                    successes++;
+                }
+            }
+            return successes;
+        }
+
+        function testCommonTrain() {
+            const train = new Train(10, 5); // Trackie
+            const successes = simulateCapture(train, 10);
+            const resultDiv = document.getElementById('test1-results');
+            const passRate = (successes / 10) * 100;
+
+            resultDiv.innerHTML = `
+                <p>Catch Rate: ${train.species.catchRate}/255</p>
+                <p>Successes: ${successes}/10 (${passRate}%)</p>
+                <p class="${passRate >= 70 ? 'pass' : 'fail'}">
+                    ${passRate >= 70 ? 'PASS' : 'FAIL'} - Expected 70%+ success rate
+                </p>
+            `;
+        }
+
+        function testStarterTrain() {
+            const train = new Train(1, 5); // Steamini
+            const successes = simulateCapture(train, 10);
+            const resultDiv = document.getElementById('test2-results');
+            const passRate = (successes / 10) * 100;
+
+            resultDiv.innerHTML = `
+                <p>Catch Rate: ${train.species.catchRate}/255</p>
+                <p>Successes: ${successes}/10 (${passRate}%)</p>
+                <p class="${passRate < 50 ? 'pass' : 'fail'}">
+                    ${passRate < 50 ? 'PASS' : 'FAIL'} - Expected <50% success rate
+                </p>
+            `;
+        }
+
+        function testHPEffect() {
+            const trainFullHP = new Train(1, 5);
+            const trainLowHP = new Train(1, 5);
+            trainLowHP.currentHP = Math.floor(trainLowHP.maxHP * 0.1); // 10% HP
+
+            const fullHPSuccesses = simulateCapture(trainFullHP, 20);
+            const lowHPSuccesses = simulateCapture(trainLowHP, 20);
+
+            const resultDiv = document.getElementById('test3-results');
+
+            resultDiv.innerHTML = `
+                <p><strong>Full HP (100%):</strong> ${fullHPSuccesses}/20 catches (${(fullHPSuccesses/20*100).toFixed(1)}%)</p>
+                <p><strong>Low HP (10%):</strong> ${lowHPSuccesses}/20 catches (${(lowHPSuccesses/20*100).toFixed(1)}%)</p>
+                <p class="${lowHPSuccesses > fullHPSuccesses ? 'pass' : 'fail'}">
+                    ${lowHPSuccesses > fullHPSuccesses ? 'PASS' : 'FAIL'} - Low HP should have higher catch rate
+                </p>
+            `;
+        }
+
+        function testTrainerBlock() {
+            const player = new Player();
+            player.items.pokeball = 5;
+            player.addTrain(new Train(1, 5));
+
+            const enemyTrain = new Train(4, 5);
+
+            // Test wild battle (should work)
+            const wildBattle = new Battle([player.party[0]], [enemyTrain], true, player.items);
+
+            // Test trainer battle (should block)
+            const trainerBattle = new Battle([player.party[0]], [enemyTrain], false, player.items);
+
+            const resultDiv = document.getElementById('test4-results');
+
+            // Check if trainer battle blocks Trainball
+            const canUseInWild = wildBattle.isWild;
+            const canUseInTrainer = !trainerBattle.isWild;
+
+            resultDiv.innerHTML = `
+                <p>Wild Battle - Can use Trainball: ${canUseInWild ? 'YES' : 'NO'}</p>
+                <p>Trainer Battle - Can use Trainball: ${canUseInTrainer ? 'NO' : 'YES'}</p>
+                <p class="${canUseInWild && !canUseInTrainer ? 'pass' : 'fail'}">
+                    ${canUseInWild && !canUseInTrainer ? 'PASS' : 'FAIL'} - Trainballs should only work in wild battles
+                </p>
+            `;
+        }
+
+        function testFullParty() {
+            const player = new Player();
+            player.items.pokeball = 5;
+
+            // Fill party with 6 trains
+            for (let i = 0; i < 6; i++) {
+                player.addTrain(new Train(i + 1, 5));
+            }
+
+            const resultDiv = document.getElementById('test5-results');
+            const canAddMore = player.addTrain(new Train(10, 5));
+
+            resultDiv.innerHTML = `
+                <p>Party Size: ${player.party.length}/6</p>
+                <p>Can add more trains: ${canAddMore ? 'YES' : 'NO'}</p>
+                <p class="${!canAddMore && player.party.length === 6 ? 'pass' : 'fail'}">
+                    ${!canAddMore && player.party.length === 6 ? 'PASS' : 'FAIL'} - Party full should block adding trains
+                </p>
+                <p><em>Note: PC storage not implemented yet</em></p>
+            `;
+        }
+    </script>
+</body>
+</html>

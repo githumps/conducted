@@ -223,6 +223,13 @@ class Game {
             if (this.battle.battleEnded) {
                 if (this.battle.playerWon) {
                     console.log('Battle won!');
+
+                    // If a train was caught, add it to the party
+                    if (this.battle.caughtTrain && this.player.party.length < CONSTANTS.MAX_PARTY_SIZE) {
+                        this.player.addTrain(this.battle.caughtTrain);
+                        console.log(`${this.battle.caughtTrain.species.name} added to party!`);
+                    }
+
                     this.state = CONSTANTS.STATES.OVERWORLD;
                     this.encounterCooldown = 5; // 5 second cooldown
                 } else {
@@ -298,6 +305,12 @@ class Game {
             } else if (this.currentMap.name === 'professors_lab' && checkX === 5 && checkY === 9) {
                 // Exit Lab, spawn one tile below entrance in Piston Town
                 this.changeMap('piston_town', 9, 11);
+            } else if (this.currentMap.name === 'piston_town' && checkX === 8 && checkY === 20) {
+                // Enter Train Depot, spawn at interior exit door
+                this.changeMap('train_depot', 6, 8);
+            } else if (this.currentMap.name === 'train_depot' && checkX === 6 && checkY === 9) {
+                // Exit Train Depot, spawn one tile below entrance in Piston Town
+                this.changeMap('piston_town', 8, 21);
             } else if (this.currentMap.name === 'coal_harbor' && checkX === 22 && checkY === 21) {
                 // Enter Coal Harbor Gym, spawn at interior exit door
                 this.changeMap('coal_harbor_gym', 7, 14);
@@ -350,9 +363,57 @@ class Game {
         if (npc) {
             console.log('Interacting with:', npc.name);
 
-            if (npc.canBattle && !npc.defeated) {
-                // Start battle with NPC
-                this.startNPCBattle(npc);
+            if (npc.type === 'healer') {
+                // Train Depot Conductor - healing dialogue with YES/NO
+                const healDialogue = {
+                    speaker: 'Conductor',
+                    text: 'Welcome to the Train Depot! Would you like me to restore your trains to perfect condition?',
+                    choices: [
+                        {
+                            text: 'YES',
+                            callback: () => {
+                                // Heal all party trains
+                                this.player.healParty();
+                                // Show success message
+                                this.dialogueBox.show([
+                                    {
+                                        speaker: 'Conductor',
+                                        text: 'Your trains are fully restored! Come back anytime!'
+                                    }
+                                ]);
+                            }
+                        },
+                        {
+                            text: 'NO',
+                            callback: () => {
+                                // Show decline message
+                                this.dialogueBox.show([
+                                    {
+                                        speaker: 'Conductor',
+                                        text: 'Please come back anytime!'
+                                    }
+                                ]);
+                            }
+                        }
+                    ]
+                };
+                this.dialogueBox.show([healDialogue]);
+                this.state = CONSTANTS.STATES.DIALOGUE;
+            } else if (npc.canBattle && !npc.defeated) {
+                // Show pre-battle dialogue, then start battle
+                if (npc.dialogue && npc.dialogue.length > 0) {
+                    this.dialogueBox.show(npc.dialogue, () => {
+                        this.startNPCBattle(npc);
+                    });
+                    this.state = CONSTANTS.STATES.DIALOGUE;
+                } else {
+                    // No dialogue, start battle immediately
+                    this.startNPCBattle(npc);
+                }
+            } else if (npc.canBattle && npc.defeated && npc.defeatDialogue) {
+                // Show post-defeat dialogue
+                this.dialogueBox.show(npc.defeatDialogue);
+                this.state = CONSTANTS.STATES.DIALOGUE;
             } else if (npc.type === 'item' && !npc.itemTaken) {
                 this.player.addItem(npc.item, npc.quantity);
                 npc.itemTaken = true;
@@ -381,7 +442,7 @@ class Game {
         const wildTrain = this.currentMap.getRandomEncounter();
         console.log(`Wild ${wildTrain.species.name} appeared!`);
 
-        this.battle = new Battle([...this.player.party], [wildTrain], true);
+        this.battle = new Battle([...this.player.party], [wildTrain], true, this.player.items);
         this.state = CONSTANTS.STATES.BATTLE;
     }
 
@@ -393,19 +454,37 @@ class Game {
             return new Train(data.speciesId, data.level);
         });
 
-        this.battle = new Battle([...this.player.party], enemyParty, false);
+        this.battle = new Battle([...this.player.party], enemyParty, false, npc);
         this.state = CONSTANTS.STATES.BATTLE;
 
         // Mark NPC as battled
         npc.defeated = true;
 
-        // Award badge if gym leader
-        if (npc.type === 'gym_leader' && npc.badge) {
-            this.battle.onVictory = () => {
+        // Set up victory callback for money and badges
+        this.battle.onVictory = () => {
+            // Award money if battle earned any
+            if (this.battle.moneyEarned) {
+                this.player.addMoney(this.battle.moneyEarned);
+                console.log(`Earned $${this.battle.moneyEarned}! Total money: $${this.player.money}`);
+            }
+
+            // Award badge if gym leader
+            if (npc.type === 'gym_leader' && npc.badge) {
                 this.player.earnBadge(npc.badge);
                 console.log(`Earned ${npc.badge}!`);
-            };
-        }
+            }
+
+            // Show defeat dialogue after battle ends
+            if (npc.defeatDialogue && npc.defeatDialogue.length > 0) {
+                // Delay showing dialogue until after battle state ends
+                setTimeout(() => {
+                    if (this.state === CONSTANTS.STATES.OVERWORLD) {
+                        this.dialogueBox.show(npc.defeatDialogue);
+                        this.state = CONSTANTS.STATES.DIALOGUE;
+                    }
+                }, 100);
+            }
+        };
     }
 
     render() {
@@ -692,6 +771,22 @@ class Game {
             this.ctx.lineWidth = 1;
             this.ctx.strokeRect(hpBarX, hpBarY, hpBarWidth, hpBarHeight);
         }
+
+        // Money display (top-right corner)
+        const moneyWidth = 160;
+        const moneyHeight = 36;
+        const moneyX = CONSTANTS.CANVAS_WIDTH - moneyWidth - 20;
+        const moneyY = 20;
+
+        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        this.ctx.fillRect(moneyX, moneyY, moneyWidth, moneyHeight);
+        this.ctx.strokeStyle = CONSTANTS.COLORS.BLACK;
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(moneyX, moneyY, moneyWidth, moneyHeight);
+
+        this.ctx.fillStyle = CONSTANTS.COLORS.BLACK;
+        this.ctx.font = 'bold 16px monospace';
+        this.ctx.fillText(`$${this.player.money}`, moneyX + 10, moneyY + 24);
 
         // Badges counter
         const badgeWidth = 200;

@@ -136,6 +136,10 @@ function createPistonTown() {
     map.fillRect(27, 5, 8, 6, TILE_TYPES.BUILDING);
     map.setTile(31, 10, TILE_TYPES.DOOR);
 
+    // Train Depot (left side, middle)
+    map.fillRect(5, 16, 6, 5, TILE_TYPES.BUILDING);
+    map.setTile(8, 20, TILE_TYPES.DOOR);
+
     // Train Station (bottom)
     map.fillRect(15, 20, 10, 6, TILE_TYPES.STATION);
     map.setTile(20, 20, TILE_TYPES.DOOR);
@@ -201,6 +205,7 @@ function createPistonTown() {
         x: 25,
         y: 15,
         type: 'trainer',
+        baseReward: 50,
         canBattle: true,
         defeated: false,
         party: [
@@ -277,6 +282,7 @@ function createRoute1() {
         x: 15,
         y: 20,
         type: 'trainer',
+        baseReward: 30,
         color: '#16A085',
         canBattle: true,
         defeated: false,
@@ -498,6 +504,55 @@ function createVoltageCity() {
 }
 
 /**
+ * Create Train Depot - Healing center (Pokemon Center equivalent)
+ */
+function createTrainDepot() {
+    const map = new WorldMap('train_depot', 12, 10);
+
+    // Floor tiles
+    map.fillRect(0, 0, 12, 10, TILE_TYPES.PATH);
+
+    // Walls
+    for (let x = 0; x < 12; x++) {
+        map.setTile(x, 0, TILE_TYPES.WALL);
+        map.setTile(x, 9, TILE_TYPES.WALL);
+    }
+    for (let y = 0; y < 10; y++) {
+        map.setTile(0, y, TILE_TYPES.WALL);
+        map.setTile(11, y, TILE_TYPES.WALL);
+    }
+
+    // Exit door (bottom center)
+    map.setTile(6, 9, TILE_TYPES.DOOR);
+
+    // Counter/desk (rails to represent service counter)
+    map.fillRect(4, 3, 4, 1, TILE_TYPES.RAILS);
+
+    // Conductor NPC behind counter
+    map.addNPC({
+        id: 'depot_conductor',
+        name: 'Conductor',
+        x: 6,
+        y: 2,
+        type: 'healer',
+        color: '#E74C3C',
+        dialogue: [
+            {
+                speaker: 'Conductor',
+                text: 'Welcome to the Train Depot! Would you like me to restore your trains to perfect condition?',
+                choices: [
+                    { text: 'YES', callback: null }, // Will be set dynamically
+                    { text: 'NO', callback: null }
+                ]
+            }
+        ]
+    });
+
+    map.music = 'train_depot';
+    return map;
+}
+
+/**
  * Create all world maps
  */
 function createAllMaps() {
@@ -510,6 +565,7 @@ function createAllMaps() {
     maps['voltage_city'] = createVoltageCity();
     maps['professors_lab'] = createProfessorsLab();
     maps['coal_harbor_gym'] = createCoalHarborGym();
+    maps['train_depot'] = createTrainDepot();
 
     // TODO: Create remaining towns and routes
     // - Steamspring Village
