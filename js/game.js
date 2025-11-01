@@ -245,9 +245,39 @@ class Game {
 
     updateMenu() {
         const action = this.input.getAction();
+        const moveAction = this.input.getMovementAction();
 
-        if (action === 'b' || action === 'start') {
+        const menuOptions = ['TRAINS', 'INVENTORY', 'SAVE', 'OPTIONS', 'EXIT'];
+
+        // Navigate menu
+        if (moveAction === 'up') {
+            this.menuSelection = (this.menuSelection - 1 + menuOptions.length) % menuOptions.length;
+        } else if (moveAction === 'down') {
+            this.menuSelection = (this.menuSelection + 1) % menuOptions.length;
+        } else if (action === 'a') {
+            // Handle menu selection
+            switch (this.menuSelection) {
+                case 0: // TRAINS
+                    console.log('View trains (not implemented yet)');
+                    break;
+                case 1: // INVENTORY
+                    console.log('View inventory (not implemented yet)');
+                    break;
+                case 2: // SAVE
+                    this.save();
+                    break;
+                case 3: // OPTIONS
+                    console.log('Options (not implemented yet)');
+                    break;
+                case 4: // EXIT
+                    this.state = CONSTANTS.STATES.OVERWORLD;
+                    this.menuSelection = 0;
+                    break;
+            }
+        } else if (action === 'b' || action === 'start') {
+            // Close menu with B or Start
             this.state = CONSTANTS.STATES.OVERWORLD;
+            this.menuSelection = 0;
         }
     }
 
@@ -834,7 +864,7 @@ class Game {
                 'OPTIONS',
                 'EXIT'
             ],
-            0
+            this.menuSelection
         );
     }
 
