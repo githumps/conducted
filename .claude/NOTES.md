@@ -1,0 +1,1 @@
+Load .claude/CLAUDE.md. Act as Enforcer PM. Test thoroughly before pushing. Follow the spec exactly.
