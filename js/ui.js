@@ -243,6 +243,59 @@ class UI {
         ctx.font = '16px monospace';
         ctx.fillText('Press A to use • B to cancel', x + 20, y + height - 20);
     }
+
+    static drawShop(ctx, shopItems, selectedIndex, player) {
+        const x = 100;
+        const y = 100;
+        const width = 600;
+        const height = 400;
+
+        // Draw box
+        ctx.fillStyle = CONSTANTS.COLORS.WHITE;
+        ctx.fillRect(x, y, width, height);
+        ctx.strokeStyle = CONSTANTS.COLORS.BLACK;
+        ctx.lineWidth = 3;
+        ctx.strokeRect(x, y, width, height);
+
+        // Title
+        ctx.fillStyle = CONSTANTS.COLORS.BLACK;
+        ctx.font = 'bold 24px monospace';
+        ctx.fillText('RAIL MART', x + 20, y + 40);
+
+        // Money display
+        ctx.font = '18px monospace';
+        ctx.fillText(`Money: $${player.money}`, x + 400, y + 40);
+
+        // Item list
+        ctx.font = '20px monospace';
+        const lineHeight = 60;
+
+        for (let i = 0; i < shopItems.length; i++) {
+            const item = shopItems[i];
+            const itemY = y + 120 + i * lineHeight;
+
+            // Highlight selected
+            if (i === selectedIndex) {
+                ctx.fillStyle = CONSTANTS.COLORS.UI_HIGHLIGHT;
+                ctx.fillRect(x + 10, itemY - 35, width - 20, lineHeight - 5);
+                ctx.fillStyle = CONSTANTS.COLORS.WHITE;
+            } else {
+                ctx.fillStyle = CONSTANTS.COLORS.BLACK;
+            }
+
+            // Item name and price
+            ctx.fillText(`${item.displayName}`, x + 30, itemY - 5);
+            ctx.font = '16px monospace';
+            ctx.fillText(`$${item.price}`, x + 400, itemY - 5);
+            ctx.fillText(item.description, x + 30, itemY + 20);
+            ctx.font = '20px monospace';
+        }
+
+        // Instructions
+        ctx.fillStyle = CONSTANTS.COLORS.BLACK;
+        ctx.font = '16px monospace';
+        ctx.fillText('Press A to buy • B to exit', x + 20, y + height - 20);
+    }
 }
 
 class DialogueBox {

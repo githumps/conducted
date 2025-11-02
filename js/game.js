@@ -40,11 +40,19 @@ function Game(canvas) {
 
     // Pause menu system
     this.menuSelection = 0;
-    this.menuOptions = ['TRAINS', 'BAG', 'HEAL', 'SAVE', 'CLOSE'];
+    this.menuOptions = ['TRAINS', 'BAG', 'SHOP', 'HEAL', 'SAVE', 'CLOSE'];
     this.bagSelection = 0;
     this.bagMode = 'list'; // 'list', 'use_on_train'
     this.selectedItem = null;
     this.trainSelection = 0;
+
+    // Shop system
+    this.shopSelection = 0;
+    this.shopItems = [
+        { name: 'potion', displayName: 'Potion', price: 300, description: 'Heals 20 HP' },
+        { name: 'super_potion', displayName: 'Super Potion', price: 700, description: 'Heals 50 HP' },
+        { name: 'boxcar', displayName: 'Boxcar', price: 200, description: 'Catches wild trains' }
+    ];
 
     // Initialize maps
     this.initMaps();
@@ -800,6 +808,36 @@ Game.prototype.importSaveToken = function(token) {
 // Add these methods before the final closing of game.js
 
 Game.prototype.updateMenu = function() {
+    // SHOP mode - browse and purchase items
+    if (this.menuOptions[this.menuSelection] === 'SHOP') {
+        // Navigate shop items
+        if (this.input.isKeyJustPressed('ArrowUp') || this.input.isVirtualKeyJustPressed('up')) {
+            this.shopSelection = Math.max(0, this.shopSelection - 1);
+        } else if (this.input.isKeyJustPressed('ArrowDown') || this.input.isVirtualKeyJustPressed('down')) {
+            this.shopSelection = Math.min(this.shopItems.length - 1, this.shopSelection + 1);
+        }
+
+        // Purchase item
+        if (this.input.isKeyJustPressed('Enter') || this.input.isKeyJustPressed('z') || this.input.isVirtualKeyJustPressed('a')) {
+            const item = this.shopItems[this.shopSelection];
+            if (this.player.money >= item.price) {
+                this.player.money -= item.price;
+                this.player.items[item.name] = (this.player.items[item.name] || 0) + 1;
+                console.log(`Bought ${item.displayName} for $${item.price}! Money: $${this.player.money}`);
+            } else {
+                console.log(`Not enough money! Need $${item.price}, have $${this.player.money}`);
+            }
+        }
+
+        // Exit shop
+        if (this.input.isKeyJustPressed('Backspace') || this.input.isKeyJustPressed('x') || this.input.isVirtualKeyJustPressed('b') || this.input.isKeyJustPressed('Escape')) {
+            this.menuSelection = 0;
+            return;
+        }
+
+        return; // Don't process main menu navigation while in shop
+    }
+
     // BAG mode with item usage
     if (this.menuOptions[this.menuSelection] === 'BAG' && this.bagMode === 'use_on_train') {
         // Navigate trains
@@ -917,7 +955,9 @@ Game.prototype.renderMenu = function() {
     this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-    if (this.menuOptions[this.menuSelection] === 'BAG') {
+    if (this.menuOptions[this.menuSelection] === 'SHOP') {
+        UI.drawShop(this.ctx, this.shopItems, this.shopSelection, this.player);
+    } else if (this.menuOptions[this.menuSelection] === 'BAG') {
         if (this.bagMode === 'use_on_train') {
             UI.drawBagUseOnTrain(this.ctx, this.player, this.trainSelection, this.selectedItem);
         } else {
