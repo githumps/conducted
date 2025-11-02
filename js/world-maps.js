@@ -20,6 +20,16 @@ function boxed(width, height, wallIndex = 1, floorIndex = 0) {
   return t;
 }
 
+// Tile collision types
+const TILE_TYPES = {
+  BLOCKED: 0,      // Walls, buildings, trees - can't walk
+  WALKABLE: 1,     // Paths, floors - can walk
+  GRASS: 2,        // Grass - can walk, encounters
+  TALL_GRASS: 3,   // Tall grass - can walk, more encounters
+  DOOR: 4,         // Doors - can walk, triggers warp
+  WATER: 5         // Water - blocked unless surfing
+};
+
 // --- map registry (global WORLD_MAPS object) ---
 const WORLD_MAPS = {
   PistonTown: {
@@ -68,9 +78,12 @@ const WORLD_MAPS = {
       { from: rect(15, 9), to: { mapId: 'HealingDepot', ...pos(3, 6, 'down') } },
       // door into Mart
       { from: rect(8, 11), to: { mapId: 'TrainMart', ...pos(3, 6, 'down') } },
-      // route exit on bottom
-      { from: rect(10, 14), to: { mapId: 'Route1', ...pos(10, 1, 'down') } },
+      // route exit on bottom (SEAMLESS transition)
+      { from: rect(10, 14), to: { mapId: 'Route1', ...pos(10, 0, 'down') } },
     ],
+    connections: {
+      south: { mapId: 'Route1', offsetX: 0, offsetY: 0 } // Connect bottom edge to Route1 top
+    },
     npcs: [],
     getTile: function(x, y) {
       if (x < 0 || x >= this.width || y < 0 || y >= this.height) return 0;
@@ -78,7 +91,8 @@ const WORLD_MAPS = {
     },
     isWalkable: function(x, y) {
       const tile = this.getTile(x, y);
-      const walkableTiles = [1, 2, 3, 12]; // grass, tall grass, path, door
+      // Walkable tiles: grass(1), tall grass(2), paths(3), doors(12)
+      const walkableTiles = [TILE_TYPES.WALKABLE, TILE_TYPES.GRASS, TILE_TYPES.TALL_GRASS, TILE_TYPES.DOOR, 1, 2, 3, 12];
       return walkableTiles.includes(tile);
     },
     checkForEncounter: function() {
@@ -118,9 +132,12 @@ const WORLD_MAPS = {
     width: 20, height: 15,
     tiles: boxed(20, 15, 5, 2), // 5=wall/cliff, 2=tall grass (for encounters)
     warps: [
-      // back to town top edge
-      { from: rect(10, 0), to: { mapId: 'PistonTown', ...pos(10, 13, 'up') } },
+      // back to town top edge (SEAMLESS transition)
+      { from: rect(10, 0), to: { mapId: 'PistonTown', ...pos(10, 14, 'up') } },
     ],
+    connections: {
+      north: { mapId: 'PistonTown', offsetX: 0, offsetY: 0 } // Connect top edge to PistonTown bottom
+    },
     npcs: [],
     getTile: function(x, y) {
       if (x < 0 || x >= this.width || y < 0 || y >= this.height) return 0;
