@@ -33,6 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('Creating game instance...');
         updateLoadStatus('Creating game...', '#ffaa00');
         const game = new Game(canvas);
+        window.DEBUG_GAME = game; // Expose for debugging/testing
         console.log('✓ Game instance created');
         updateLoadStatus('Game created...', '#ffaa00');
 

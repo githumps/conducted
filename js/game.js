@@ -22,8 +22,14 @@ function Game(canvas) {
     this.starterSelection = null;
     this.battle = null;
 
+    // Image storage
+    this.images = {};
+
     // Initialize maps
     this.initMaps();
+
+    // Preload starter sprites
+    this.preloadStarterSprites();
 
     console.log('✅ Game initialized');
 }
@@ -42,6 +48,15 @@ Game.prototype.initMaps = function() {
     } else {
         // Fallback to pallet_town
         this.currentMap = this.maps['pallet_town'];
+    }
+};
+
+Game.prototype.preloadStarterSprites = function() {
+    const starters = ['Steamini', 'Sparkart', 'Diesling'];
+    for (const starter of starters) {
+        const img = new Image();
+        img.src = `assets/sprites/${starter}/front.png`;
+        this.images[starter] = img;
     }
 };
 
@@ -330,6 +345,12 @@ Game.prototype.renderStarterSelection = function(ctx) {
             if (i === ss.selection) {
                 ctx.fillStyle = CONSTANTS.COLORS.UI_HIGHLIGHT;
                 ctx.fillRect(x - 10, y - 10, 180, 200);
+            }
+
+            // Draw sprite image
+            const spriteImg = this.images[starter.name];
+            if (spriteImg && spriteImg.complete) {
+                ctx.drawImage(spriteImg, x + 10, y + 70, 128, 128);
             }
 
             ctx.fillStyle = CONSTANTS.COLORS.WHITE;
