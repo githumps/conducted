@@ -128,3 +128,32 @@ game.js: 406 → 477 (+71 lines)
 ### Status
 ✅ Syntax valid
 ⏳ Awaiting browser test
+
+---
+## 2025-11-01T21:30:00Z — Browser Testing + Art Workflow
+
+### ✅ Playwright Testing
+- Game boots successfully at file:///index.html
+- Title screen renders ✅
+- Intro dialogue renders ✅
+- No critical errors (only one "Unexpected token 'export'" warning)
+
+### 📝 Art Workflow Documented
+Created DOCS/ART_WORKFLOW_SIMPLE.md with:
+- **MANUAL workflow** (no watcher needed - just use A1111 web UI)
+- **OPTIONAL automation** (Python script for later)
+
+### User Action Required
+Generate 9 PNG files using A1111:
+1. Open http://100.68.225.122:7860
+2. For each JSON in assets/prompts/queue/:
+   - Copy prompt/negative_prompt into web UI
+   - Set width/height/steps/cfg_scale from JSON
+   - Generate 3 images
+   - Save best image to assets/out/<name>_001.png
+3. Tell Claude when done
+
+### Next
+- Once PNGs arrive → promote to assets/tiles/ and assets/sprites/
+- Wire up in js/world-maps.js and js/battle.js
+- Test game with actual art!
