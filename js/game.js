@@ -97,6 +97,9 @@ Game.prototype.preloadStarterSprites = function() {
 };
 
 Game.prototype.update = function(deltaTime) {
+    // Update input state (CRITICAL: must happen every frame for isKeyJustPressed to work)
+    this.input.update();
+
     switch (this.state) {
         case 'loading':
             // Images are loading, wait for completion
