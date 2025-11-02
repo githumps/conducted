@@ -532,7 +532,7 @@ class Battle {
         }
 
         // Battle menu
-        if (this.state === CONSTANTS.BATTLE_STATES.PLAYER_TURN) {
+        if (this.state === CONSTANTS.BATTLE_STATES.MENU) {
             const menuOptions = ['FIGHT', 'TRAIN', 'ITEM', 'RUN'];
             const menuX = 450;
             const menuY = 500;
@@ -553,7 +553,7 @@ class Battle {
         }
 
         // Move selection menu
-        if (this.state === CONSTANTS.BATTLE_STATES.MOVE_SELECTION) {
+        if (this.state === CONSTANTS.BATTLE_STATES.FIGHT) {
             const moves = this.playerActive.moves;
             const menuX = 450;
             const menuY = 500;
@@ -570,7 +570,8 @@ class Battle {
 
                     ctx.fillStyle = '#000000';
                     ctx.font = 'bold 14px monospace';
-                    ctx.fillText(move.name, x + 5, y + 23);
+                    const moveName = typeof move === 'string' ? move : move.name;
+                    ctx.fillText(moveName, x + 5, y + 23);
                 }
             });
         }

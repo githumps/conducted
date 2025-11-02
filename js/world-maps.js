@@ -27,10 +27,47 @@ const WORLD_MAPS = {
     name: 'Piston Town',
     tileset: 'assets/tiles/piston-town.png',
     width: 20, height: 15,
-    tiles: boxed(20, 15, /*wall*/ 2, /*floor*/ 0),
+    tiles: [
+      // Row 0 - Top border with tall grass
+      [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+      // Row 1 - Tall grass border with player house (top-left)
+      [2, 2, 5, 5, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2],
+      // Row 2 - Player house with door, grass area
+      [2, 2, 5, 5, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2],
+      // Row 3 - Path starts, grass areas, Professor Lab (top)
+      [2, 2, 12, 3, 3, 3, 1, 1, 5, 5, 5, 1, 1, 1, 1, 1, 2, 2, 2, 2],
+      // Row 4 - Main horizontal path with Lab middle
+      [2, 1, 1, 3, 1, 3, 3, 3, 5, 0, 5, 3, 3, 3, 1, 1, 1, 2, 2, 2],
+      // Row 5 - Lab bottom with door, path continues
+      [2, 1, 1, 3, 1, 1, 1, 3, 5, 12, 5, 3, 1, 1, 1, 1, 1, 1, 2, 2],
+      // Row 6 - Central path intersection
+      [2, 1, 3, 3, 3, 1, 1, 3, 3, 3, 3, 3, 3, 3, 1, 1, 1, 1, 1, 2],
+      // Row 7 - Town center path (player spawn at 10,7), Depot (right)
+      [2, 1, 3, 1, 1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 5, 5, 1, 1, 2],
+      // Row 8 - Depot with door, Mart (top), grass
+      [2, 1, 3, 1, 1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 5, 5, 1, 1, 2],
+      // Row 9 - Path to south, Mart (bottom)
+      [2, 1, 3, 1, 1, 1, 1, 1, 5, 5, 3, 1, 1, 1, 1, 12, 3, 1, 1, 2],
+      // Row 10 - Vertical path continues with Mart door
+      [2, 1, 3, 1, 1, 1, 1, 1, 5, 5, 3, 1, 1, 1, 1, 1, 3, 1, 1, 2],
+      // Row 11 - Path widens south
+      [2, 1, 3, 1, 1, 1, 1, 1, 12, 3, 3, 3, 1, 1, 1, 1, 3, 1, 1, 2],
+      // Row 12 - Path continues to exit
+      [2, 1, 3, 3, 1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 3, 1, 1, 2],
+      // Row 13 - Near exit with grass
+      [2, 1, 1, 3, 3, 3, 1, 1, 1, 1, 3, 1, 1, 1, 3, 3, 3, 1, 1, 2],
+      // Row 14 - Bottom border with exit at center
+      [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+    ],
     warps: [
+      // door into Player House
+      { from: rect(2, 3), to: { mapId: 'PlayerHouse', ...pos(3, 6, 'down') } },
       // door into Lab
-      { from: rect(9, 6), to: { mapId: 'LabInterior', ...pos(4, 7, 'down') } },
+      { from: rect(9, 5), to: { mapId: 'LabInterior', ...pos(4, 7, 'down') } },
+      // door into Depot
+      { from: rect(15, 9), to: { mapId: 'HealingDepot', ...pos(3, 6, 'down') } },
+      // door into Mart
+      { from: rect(8, 11), to: { mapId: 'TrainMart', ...pos(3, 6, 'down') } },
       // route exit on bottom
       { from: rect(10, 14), to: { mapId: 'Route1', ...pos(10, 1, 'down') } },
     ],
@@ -41,7 +78,7 @@ const WORLD_MAPS = {
     },
     isWalkable: function(x, y) {
       const tile = this.getTile(x, y);
-      const walkableTiles = [0, 1, 2, 3, 6, 9, 10, 12];
+      const walkableTiles = [1, 2, 3, 12]; // grass, tall grass, path, door
       return walkableTiles.includes(tile);
     },
     checkForEncounter: function() {
@@ -79,7 +116,7 @@ const WORLD_MAPS = {
     name: 'Route 1',
     tileset: 'assets/tiles/route-grass.png',
     width: 20, height: 15,
-    tiles: boxed(20, 15, 5, 4), // 5=wall/cliff, 4=grass floor
+    tiles: boxed(20, 15, 5, 2), // 5=wall/cliff, 2=tall grass (for encounters)
     warps: [
       // back to town top edge
       { from: rect(10, 0), to: { mapId: 'PistonTown', ...pos(10, 13, 'up') } },
@@ -95,24 +132,26 @@ const WORLD_MAPS = {
       return walkableTiles.includes(tile);
     },
     checkForEncounter: function() {
-      return Math.random() < 0.10;
+      return Math.random() < 0.10; // 10% encounter rate
     },
     getRandomEncounter: function() {
-      const level = Utils.randomInt(2, 7);
-      const speciesId = Utils.randomInt(1, 26);
+      const level = Utils.randomInt(3, 7); // Wild trains level 3-7
+      const speciesId = Utils.randomInt(1, 20); // Early game trains (IDs 1-20)
+      console.log(`Wild encounter: Train #${speciesId} (Lv.${level})`);
       return new Train(speciesId, level);
     }
   },
 };
 
-// Add collisions to each map
+// Add collisions to each map (only non-walkable tiles: void=0, wall=5)
 for (const m of Object.values(WORLD_MAPS)) {
   m.collisions = new Set();
   const { tiles } = m;
   for (let y = 0; y < m.height; y++) {
     for (let x = 0; x < m.width; x++) {
       const idx = tiles[y][x];
-      if (idx === 2 || idx === 5 || idx === 3) {
+      // Only add walls (5) and void (0) as collisions
+      if (idx === 0 || idx === 5) {
         m.collisions.add(`${x},${y}`);
       }
     }

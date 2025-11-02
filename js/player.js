@@ -5,8 +5,8 @@
 class Player {
     constructor() {
         this.name = "Alex";
-        this.x = 20;  // Start in center of Piston Town
-        this.y = 15;
+        this.x = 10;  // Start in center of Piston Town (map is 20x15, so center is ~10,7)
+        this.y = 7;
         this.direction = CONSTANTS.DIRECTIONS.DOWN;
         this.currentMap = 'piston_town';
 

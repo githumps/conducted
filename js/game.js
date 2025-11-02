@@ -77,7 +77,10 @@ Game.prototype.preloadStarterSprites = function() {
         console.log(`✅ Loaded ${name} (${loadedCount}/${totalImages})`);
         if (loadedCount === totalImages) {
             this.imagesLoaded = true;
-            this.state = CONSTANTS.STATES.TITLE;
+            // Only transition to title if we're in loading state (not if we loaded from save)
+            if (this.state === 'loading') {
+                this.state = CONSTANTS.STATES.TITLE;
+            }
             console.log('✅ All sprites loaded');
         }
     };
@@ -356,13 +359,20 @@ Game.prototype.findWarp = function(map, x, y) {
     return null;
 };
 
-Game.prototype.startBattle = function(wildTrain, isTrainerBattle) {
+Game.prototype.startBattle = function(wildTrain, isTrainerBattle = false) {
     if (this.player.party.length === 0) {
         console.warn('Cannot start battle - no trains in party');
         return;
     }
 
-    this.battle = new Battle(this.player, wildTrain, isTrainerBattle);
+    // Battle constructor expects: (playerTrains[], enemyTrains[], isWild, trainerNPC)
+    if (isTrainerBattle) {
+        // Trainer battle (not yet implemented)
+        this.battle = new Battle(this.player.party, [wildTrain], false, null);
+    } else {
+        // Wild encounter
+        this.battle = new Battle(this.player.party, [wildTrain], true);
+    }
     this.state = CONSTANTS.STATES.BATTLE;
     console.log('→ BATTLE');
 };
@@ -373,7 +383,23 @@ Game.prototype.updateBattle = function(deltaTime) {
         return;
     }
 
-    this.battle.update(this.input);
+    // Update battle animations
+    this.battle.update(deltaTime);
+
+    // Handle input
+    if (this.input.isKeyJustPressed('Enter') || this.input.isKeyJustPressed('z') || this.input.isVirtualKeyJustPressed('a')) {
+        this.battle.handleInput('a');
+    } else if (this.input.isKeyJustPressed('ArrowUp') || this.input.isVirtualKeyJustPressed('up')) {
+        this.battle.handleInput('up');
+    } else if (this.input.isKeyJustPressed('ArrowDown') || this.input.isVirtualKeyJustPressed('down')) {
+        this.battle.handleInput('down');
+    } else if (this.input.isKeyJustPressed('ArrowLeft') || this.input.isVirtualKeyJustPressed('left')) {
+        this.battle.handleInput('left');
+    } else if (this.input.isKeyJustPressed('ArrowRight') || this.input.isVirtualKeyJustPressed('right')) {
+        this.battle.handleInput('right');
+    } else if (this.input.isKeyJustPressed('x') || this.input.isKeyJustPressed('Backspace') || this.input.isVirtualKeyJustPressed('b')) {
+        this.battle.handleInput('b');
+    }
 
     if (this.battle.isComplete && this.battle.isComplete()) {
         this.battle = null;
@@ -575,20 +601,45 @@ Game.prototype.renderStarterSelection = function(ctx) {
 Game.prototype.renderOverworld = function(ctx) {
     if (!this.currentMap) return;
 
-    // Draw map tiles
     const tileSize = CONSTANTS.TILE_SIZE * CONSTANTS.SCALE;
-    for (let y = 0; y < this.currentMap.height; y++) {
-        for (let x = 0; x < this.currentMap.width; x++) {
+    const canvas = ctx.canvas;
+
+    // Camera system - center on player
+    const cameraX = Math.floor((this.player.x * tileSize) - (canvas.width / 2) + (tileSize / 2));
+    const cameraY = Math.floor((this.player.y * tileSize) - (canvas.height / 2) + (tileSize / 2));
+
+    // Clamp camera to map bounds
+    const mapPixelWidth = this.currentMap.width * tileSize;
+    const mapPixelHeight = this.currentMap.height * tileSize;
+    const clampedCameraX = Math.max(0, Math.min(cameraX, mapPixelWidth - canvas.width));
+    const clampedCameraY = Math.max(0, Math.min(cameraY, mapPixelHeight - canvas.height));
+
+    // Calculate visible tile range
+    const startTileX = Math.floor(clampedCameraX / tileSize);
+    const startTileY = Math.floor(clampedCameraY / tileSize);
+    const endTileX = Math.min(this.currentMap.width, Math.ceil((clampedCameraX + canvas.width) / tileSize));
+    const endTileY = Math.min(this.currentMap.height, Math.ceil((clampedCameraY + canvas.height) / tileSize));
+
+    // Draw visible map tiles
+    for (let y = startTileY; y < endTileY; y++) {
+        for (let x = startTileX; x < endTileX; x++) {
             const tile = this.currentMap.getTile(x, y);
             const color = this.getTileColor(tile);
             ctx.fillStyle = color;
-            ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
+            ctx.fillRect(
+                (x * tileSize) - clampedCameraX,
+                (y * tileSize) - clampedCameraY,
+                tileSize,
+                tileSize
+            );
         }
     }
 
-    // Draw player
+    // Draw player (centered on screen or clamped to map edges)
+    const playerScreenX = (this.player.x * tileSize) - clampedCameraX;
+    const playerScreenY = (this.player.y * tileSize) - clampedCameraY;
     ctx.fillStyle = '#FF0000';
-    ctx.fillRect(this.player.x * tileSize, this.player.y * tileSize, tileSize, tileSize);
+    ctx.fillRect(playerScreenX, playerScreenY, tileSize, tileSize);
 
     // Debug info
     ctx.fillStyle = CONSTANTS.COLORS.WHITE;
