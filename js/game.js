@@ -42,12 +42,13 @@ function Game(canvas) {
     this.menuSelection = 0;
     this.menuOptions = ['TRAINS', 'BAG', 'SHOP', 'HEAL', 'SAVE', 'CLOSE'];
     this.bagSelection = 0;
-    this.bagMode = 'list'; // 'list', 'use_on_train'
+    this.bagMode = null; // null, 'list', or 'use_on_train'
     this.selectedItem = null;
     this.trainSelection = 0;
 
     // Shop system
     this.shopSelection = 0;
+    this.shopMode = null;  // null or 'active' when shop is open
     this.shopItems = [
         { name: 'potion', displayName: 'Potion', price: 300, description: 'Heals 20 HP' },
         { name: 'super_potion', displayName: 'Super Potion', price: 700, description: 'Heals 50 HP' },
@@ -940,8 +941,8 @@ Game.prototype.importSaveToken = function(token) {
 // Add these methods before the final closing of game.js
 
 Game.prototype.updateMenu = function() {
-    // SHOP mode - browse and purchase items
-    if (this.menuOptions[this.menuSelection] === 'SHOP') {
+    // SHOP mode - browse and purchase items (only if shop is actually open, not just highlighted)
+    if (this.menuOptions[this.menuSelection] === 'SHOP' && this.shopMode === 'active') {
         // Navigate shop items
         if (this.input.isKeyJustPressed('ArrowUp') || this.input.isVirtualKeyJustPressed('up')) {
             this.shopSelection = Math.max(0, this.shopSelection - 1);
@@ -964,6 +965,7 @@ Game.prototype.updateMenu = function() {
         // Exit shop
         if (this.input.isKeyJustPressed('Backspace') || this.input.isKeyJustPressed('x') || this.input.isVirtualKeyJustPressed('b') || this.input.isKeyJustPressed('Escape')) {
             this.menuSelection = 0;
+            this.shopMode = null;  // Clear shop mode to return to main menu
             return;
         }
 
@@ -1007,8 +1009,8 @@ Game.prototype.updateMenu = function() {
         return;
     }
 
-    // BAG mode - list items
-    if (this.menuOptions[this.menuSelection] === 'BAG') {
+    // BAG mode - list items (only if bag is actually open, not just highlighted)
+    if (this.menuOptions[this.menuSelection] === 'BAG' && this.bagMode === 'list') {
         const items = Object.keys(this.player.items).filter(item => this.player.items[item] > 0);
 
         if (items.length > 0) {
@@ -1035,6 +1037,7 @@ Game.prototype.updateMenu = function() {
         // Back to main menu
         if (this.input.isKeyJustPressed('Backspace') || this.input.isKeyJustPressed('x') || this.input.isVirtualKeyJustPressed('b')) {
             this.menuSelection = 0;
+            this.bagMode = null;  // Clear bag mode to return to main menu
         }
         return;
     }
@@ -1055,6 +1058,9 @@ Game.prototype.updateMenu = function() {
         } else if (option === 'BAG') {
             this.bagSelection = 0;
             this.bagMode = 'list';
+        } else if (option === 'SHOP') {
+            this.shopSelection = 0;
+            this.shopMode = 'active';
         } else if (option === 'HEAL') {
             this.player.healAllTrains();
             console.log('All trains healed to full HP!');
@@ -1087,9 +1093,10 @@ Game.prototype.renderMenu = function() {
     this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-    if (this.menuOptions[this.menuSelection] === 'SHOP') {
+    // Only show submenus when they're actually open (shopMode/bagMode set), not just highlighted
+    if (this.menuOptions[this.menuSelection] === 'SHOP' && this.shopMode === 'active') {
         UI.drawShop(this.ctx, this.shopItems, this.shopSelection, this.player);
-    } else if (this.menuOptions[this.menuSelection] === 'BAG') {
+    } else if (this.menuOptions[this.menuSelection] === 'BAG' && this.bagMode) {
         if (this.bagMode === 'use_on_train') {
             UI.drawBagUseOnTrain(this.ctx, this.player, this.trainSelection, this.selectedItem);
         } else {
