@@ -25,6 +25,7 @@ const WORLD_MAPS = {
   PistonTown: {
     id: 'PistonTown',
     name: 'Piston Town',
+    tileset: 'assets/tiles/piston-town.png',
     width: 20, height: 15,
     tiles: boxed(20, 15, /*wall*/ 2, /*floor*/ 0),
     warps: [
@@ -51,6 +52,7 @@ const WORLD_MAPS = {
   LabInterior: {
     id: 'LabInterior',
     name: 'Professor Cypress Lab',
+    tileset: 'assets/tiles/interiors-lab.png',
     width: 10, height: 10,
     tiles: boxed(10, 10, 3, 0),
     warps: [
@@ -75,6 +77,7 @@ const WORLD_MAPS = {
   Route1: {
     id: 'Route1',
     name: 'Route 1',
+    tileset: 'assets/tiles/route-grass.png',
     width: 20, height: 15,
     tiles: boxed(20, 15, 5, 4), // 5=wall/cliff, 4=grass floor
     warps: [
