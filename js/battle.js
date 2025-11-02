@@ -392,8 +392,8 @@ class Battle {
         if (this.playerInventory.super_potion > 0) {
             items.push({ name: 'super_potion', displayName: 'Super Potion', quantity: this.playerInventory.super_potion });
         }
-        if (this.playerInventory.pokeball > 0) {
-            items.push({ name: 'pokeball', displayName: 'Trainball', quantity: this.playerInventory.pokeball });
+        if (this.playerInventory.boxcar > 0) {
+            items.push({ name: 'boxcar', displayName: 'Boxcar', quantity: this.playerInventory.boxcar });
         }
 
         return items;
@@ -402,8 +402,8 @@ class Battle {
     useItem(item) {
         if (item.name === 'potion' || item.name === 'super_potion') {
             this.usePotion(item.name);
-        } else if (item.name === 'pokeball') {
-            this.useTrainball();
+        } else if (item.name === 'boxcar') {
+            this.useBoxcar();
         }
     }
 
@@ -439,7 +439,7 @@ class Battle {
         });
     }
 
-    useTrainball() {
+    useBoxcar() {
         // Can't catch trainer's trains
         if (!this.isWild) {
             this.addMessage("Can't catch a trainer's train!");
@@ -449,9 +449,9 @@ class Battle {
         }
 
         this.state = CONSTANTS.BATTLE_STATES.ANIMATION;
-        this.addMessage("You threw a Trainball!");
+        this.addMessage("You threw a Boxcar!");
 
-        this.playerInventory.pokeball--;
+        this.playerInventory.boxcar--;
 
         // Gen 1 capture formula
         const catchRate = this.enemyActive.species.catchRate || 45;

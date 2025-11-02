@@ -168,7 +168,7 @@ class UI {
         const items = [
             { name: 'Potion', count: player.items.potion },
             { name: 'Super Potion', count: player.items.super_potion },
-            { name: 'Trainball', count: player.items.pokeball },
+            { name: 'Boxcar', count: player.items.boxcar },
             { name: 'Train Ticket', count: player.items.train_ticket }
         ];
 

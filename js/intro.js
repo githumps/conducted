@@ -143,7 +143,7 @@ class StarterSelection {
             },
             {
                 speaker: 'Professor Cypress',
-                text: 'Trainballs are used to catch wild trains you encounter on your journey. Throw one when a wild train is weakened in battle!'
+                text: 'Boxcars are used to catch wild trains you encounter on your journey. Throw one when a wild train is weakened in battle!'
             },
             {
                 speaker: 'Professor Cypress',
@@ -220,7 +220,7 @@ class StarterSelection {
             if (!this.game.player.items) {
                 this.game.player.items = {};
             }
-            this.game.player.items.pokeball = 5;  // Trainballs
+            this.game.player.items.boxcar = 5;  // Boxcars
             this.game.player.items.potion = 2;     // Potions
         }
 

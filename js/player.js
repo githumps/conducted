@@ -17,7 +17,7 @@ class Player {
         this.items = {
             potion: 0,
             super_potion: 0,
-            pokeball: 0,  // Will receive 5 Trainballs after starter selection
+            boxcar: 0,  // Will receive 5 Boxcars after starter selection
             train_ticket: 1
         };
 

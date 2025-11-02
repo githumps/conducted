@@ -846,8 +846,8 @@ Game.prototype.updateMenu = function() {
             if (this.input.isKeyJustPressed('Enter') || this.input.isKeyJustPressed('z') || this.input.isVirtualKeyJustPressed('a')) {
                 const selectedItem = items[this.bagSelection];
 
-                if (selectedItem === 'pokeball') {
-                    console.log("Can't use Trainballs here!");
+                if (selectedItem === 'boxcar') {
+                    console.log("Can't use Boxcars here!");
                 } else if (selectedItem === 'potion' || selectedItem === 'super_potion') {
                     this.selectedItem = selectedItem;
                     this.bagMode = 'use_on_train';
