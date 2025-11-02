@@ -105,12 +105,17 @@ Risks: (what could break)
 5) Offload assets/bulk data to local tools (see DOCS/ASSET_PIPELINE.md)
 
 Before Merge Checklist
+**CRITICAL - ALL ITEMS MANDATORY:**
+- **Menu Navigation Test** - Run tests/MENU_TEST_CHECKLIST.md - ALL boxes must be checked ✅
+- **Playwright MCP Testing** - Use browser to verify every feature works
 - Mobile controls tested
 - Save/Load verified
 - Tests pass (if present)
 - Version bumped correctly
-- Issue closed with “Fixes #N”
+- Issue closed with "Fixes #N"
 - Long context dumped to TASKLOG
+
+**⛔ DO NOT COMMIT IF ANY TEST FAILS ⛔**
 
 ## 🚨 Extended Pitfalls
 Don’t deviate from /docs/ design (causes narrative & naming drift)
