@@ -316,6 +316,11 @@ class Battle {
 
             // Store money to be awarded by onVictory callback
             this.moneyEarned = moneyEarned;
+        } else if (this.isWild) {
+            // Award smaller money for wild battles
+            const moneyEarned = Math.floor(this.enemyActive.level * 10 + Math.random() * 20);
+            this.addMessage(`You found $${moneyEarned}!`);
+            this.moneyEarned = moneyEarned;
         }
 
         if (this.onVictory) {

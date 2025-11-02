@@ -419,6 +419,12 @@ Game.prototype.updateBattle = function(deltaTime) {
         // Check if player was defeated
         if (this.battle.state === CONSTANTS.BATTLE_STATES.DEFEAT) {
             this.handleDefeat();
+        } else if (this.battle.state === CONSTANTS.BATTLE_STATES.VICTORY) {
+            // Award money from battle
+            if (this.battle.moneyEarned) {
+                this.player.money += this.battle.moneyEarned;
+                console.log(`Earned $${this.battle.moneyEarned}! Total: $${this.player.money}`);
+            }
         }
 
         this.battle = null;
