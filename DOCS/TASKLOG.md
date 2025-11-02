@@ -157,3 +157,32 @@ Generate 9 PNG files using A1111:
 - Once PNGs arrive → promote to assets/tiles/ and assets/sprites/
 - Wire up in js/world-maps.js and js/battle.js
 - Test game with actual art!
+
+---
+## 2025-11-01T21:45:00Z — AI Art Generation Failed, Using Placeholders
+
+### AI Generation Attempt
+- Used AUTOMATIC1111 SD 1.5 API to generate sprites
+- Cranked settings: 128x128, 80 steps, CFG 12, 12 variations
+- Result: Abstract blurry blobs, not recognizable as trains
+- **Conclusion**: SD 1.5 NOT suitable for pixel art or retro game sprites
+
+### Root Cause
+- SD 1.5 trained on photos/realistic art, not pixel art
+- Lacks understanding of Game Boy Color aesthetic
+- Cannot produce crisp pixel outlines or limited palettes
+
+### Solution: Placeholder Art
+- Created simple colored squares with ImageMagick
+- Steamini: Orange (#D2691E)
+- Sparkart: Blue (#4682B4)  
+- Diesling: Brown (#8B4513)
+- Game is NOW PLAYABLE with placeholders
+
+### Next Steps (Issue #65)
+- Manual pixel art needed (Aseprite/Piskel)
+- OR specialized pixel art AI model
+- OR commission artist
+
+### Lesson Learned
+Don't use general SD models for specialized art styles. Know the tool's limitations.
