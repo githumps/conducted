@@ -1081,7 +1081,7 @@ Game.prototype.updateMenu = function() {
 
 Game.prototype.renderMenu = function() {
     // Render overworld behind menu
-    this.renderOverworld();
+    this.renderOverworld(this.ctx);
 
     // Draw semi-transparent overlay
     this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
