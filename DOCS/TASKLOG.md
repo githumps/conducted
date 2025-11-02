@@ -186,3 +186,39 @@ Generate 9 PNG files using A1111:
 
 ### Lesson Learned
 Don't use general SD models for specialized art styles. Know the tool's limitations.
+
+## 2025-11-01 - Critical UX & Input Fixes (Session 2)
+
+### Issues Fixed
+1. **#65** - Train sprites not rendering ✅ CLOSED
+2. **#66** - Professor Cypress sprite generation ✅ COMPLETED (12 variants)
+3. **#67** - Player character sprite generation ✅ COMPLETED (12 variants)
+4. **#68** - Title screen unresponsive ✅ CLOSED
+
+### Critical Bugs Resolved
+- **Export error**: Removed graphics.js from index.html (unused ES6 module)
+- **Slow loading**: Added loading screen with progress bar (4 sprites preloaded)
+- **Blank intro**: Added Professor Cypress sprite to intro dialogue rendering
+- **Input broken**: Added `input.update()` to game loop - ALL controls now work!
+
+### Commits
+- `9780a99` - Fix: Train sprites now render in starter selection
+- `8424696` - Generate character sprites: Professor Cypress & Player  
+- `99c4118` - Fix critical UX issues: export error, loading screen, professor sprite
+- `2dcaf4a` - Fix CRITICAL bug: Input not updating, breaking all keyboard controls
+
+### Technical Details
+- **Image Preloading**: 3 starters + 1 professor = 4 sprites loaded async with progress tracking
+- **Loading State**: New 'loading' state with visual progress bar (0-100%)
+- **Professor Rendering**: 128x128 sprite displays left of dialogue during intro
+- **Input Fix**: `this.input.update()` now called every frame before state updates
+
+### Game Now Playable
+Title → Intro (with professor!) → Starter Selection (with sprites!) → ...
+
+### Next Steps
+- Test wild battle encounters
+- Create rival character and encounters
+- Polish and playtest M1 MVP
+
+**CHOO CHOO MOTHERFUCKER!** 🚂
