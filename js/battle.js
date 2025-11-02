@@ -35,6 +35,12 @@ class Battle {
         this.animationQueue = [];
         this.animationTimer = 0;
 
+        // Visual animation state
+        this.playerShake = 0;
+        this.enemyShake = 0;
+        this.enemyFlash = 0;
+        this.playerFlash = 0;
+
         // Intro message
         if (this.isWild) {
             this.addMessage(`A wild ${this.enemyActive.species.name} appeared!`);
@@ -53,6 +59,12 @@ class Battle {
 
     update(deltaTime) {
         this.animationTimer += deltaTime;
+
+        // Decay animation effects
+        if (this.playerShake > 0) this.playerShake -= deltaTime * 10;
+        if (this.enemyShake > 0) this.enemyShake -= deltaTime * 10;
+        if (this.playerFlash > 0) this.playerFlash -= deltaTime * 3;
+        if (this.enemyFlash > 0) this.enemyFlash -= deltaTime * 3;
 
         // Handle state-based updates
         switch (this.state) {
@@ -200,11 +212,20 @@ class Battle {
 
         const result = calculateDamage(this.playerActive, this.enemyActive, moveName);
 
+        // Trigger attack animation
+        const moveData = MOVES_DB[moveName];
+        if (moveData?.category === 'physical') {
+            this.playerShake = 3; // Physical: attacker shakes forward
+        }
+
         this.animationQueue.push({
             callback: () => {
                 if (!result.hit) {
                     this.addMessage("Attack missed!");
                 } else {
+                    // Show damage flash on defender
+                    this.enemyFlash = 1;
+
                     if (result.critical) {
                         this.addMessage("Critical hit!");
                     }
@@ -238,11 +259,20 @@ class Battle {
 
         const result = calculateDamage(this.enemyActive, this.playerActive, moveName);
 
+        // Trigger attack animation
+        const moveData = MOVES_DB[moveName];
+        if (moveData?.category === 'physical') {
+            this.enemyShake = 3; // Physical: attacker shakes forward
+        }
+
         this.animationQueue.push({
             callback: () => {
                 if (!result.hit) {
                     this.addMessage("Attack missed!");
                 } else {
+                    // Show damage flash on defender
+                    this.playerFlash = 1;
+
                     if (result.critical) {
                         this.addMessage("Critical hit!");
                     }
@@ -475,6 +505,34 @@ class Battle {
         ctx.fillStyle = '#FFFFFF';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+        // Calculate animation offsets
+        const enemyShakeX = this.enemyShake > 0 ? Math.sin(Date.now() * 0.05) * this.enemyShake * 2 : 0;
+        const playerShakeX = this.playerShake > 0 ? Math.sin(Date.now() * 0.05) * this.playerShake * 2 : 0;
+
+        // Enemy train sprite (front-facing, top area)
+        if (this.enemyActive) {
+            // Flash effect when taking damage
+            if (this.enemyFlash > 0) {
+                ctx.globalAlpha = 0.5 + (this.enemyFlash * 0.5);
+                ctx.fillStyle = '#FF0000';
+                ctx.fillRect(420 + enemyShakeX - 10, 120 - 10, 100, 100);
+                ctx.globalAlpha = 1.0;
+            }
+            this.drawEnemyTrain(ctx, 420 + enemyShakeX, 120);
+        }
+
+        // Player train sprite (back-facing, bottom area)
+        if (this.playerActive) {
+            // Flash effect when taking damage
+            if (this.playerFlash > 0) {
+                ctx.globalAlpha = 0.5 + (this.playerFlash * 0.5);
+                ctx.fillStyle = '#FF0000';
+                ctx.fillRect(150 + playerShakeX - 10, 300 - 10, 100, 100);
+                ctx.globalAlpha = 1.0;
+            }
+            this.drawPlayerTrain(ctx, 150 + playerShakeX, 300);
+        }
+
         // Enemy train info (top)
         if (this.enemyActive) {
             ctx.fillStyle = '#000000';
@@ -575,6 +633,36 @@ class Battle {
                 }
             });
         }
+    }
+
+    drawEnemyTrain(ctx, x, y) {
+        // Red train facing left (front view)
+        ctx.fillStyle = '#D32F2F';
+        ctx.fillRect(x, y + 20, 80, 40); // Main body
+        ctx.fillStyle = '#C62828';
+        ctx.fillRect(x + 10, y, 20, 25); // Smoke stack
+        ctx.fillStyle = '#424242';
+        ctx.beginPath();
+        ctx.arc(x + 20, y + 70, 10, 0, Math.PI * 2); // Front wheel
+        ctx.arc(x + 60, y + 70, 10, 0, Math.PI * 2); // Back wheel
+        ctx.fill();
+        ctx.fillStyle = '#FFEB3B';
+        ctx.fillRect(x + 5, y + 30, 12, 12); // Window
+    }
+
+    drawPlayerTrain(ctx, x, y) {
+        // Blue train facing right (back view)
+        ctx.fillStyle = '#1976D2';
+        ctx.fillRect(x, y + 20, 80, 40); // Main body
+        ctx.fillStyle = '#1565C0';
+        ctx.fillRect(x + 50, y, 20, 25); // Smoke stack
+        ctx.fillStyle = '#424242';
+        ctx.beginPath();
+        ctx.arc(x + 20, y + 70, 10, 0, Math.PI * 2); // Front wheel
+        ctx.arc(x + 60, y + 70, 10, 0, Math.PI * 2); // Back wheel
+        ctx.fill();
+        ctx.fillStyle = '#FFEB3B';
+        ctx.fillRect(x + 63, y + 30, 12, 12); // Window
     }
 
     wrapText(ctx, text, x, y, maxWidth, lineHeight) {

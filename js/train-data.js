@@ -9,10 +9,10 @@ const TRAIN_SPECIES = {
         types: ["STEAM"],
         baseStats: { hp: 45, attack: 49, defense: 49, speed: 45, special: 65 },
         learnset: [
-            { level: 1, move: "Whistle" },
-            { level: 7, move: "Coal Throw" },
-            { level: 13, move: "Steam Jet" },
-            { level: 20, move: "Boiler Burst" }
+            { level: 1, move: "Coal Throw" },
+            { level: 7, move: "Steam Jet" },
+            { level: 13, move: "Boiler Burst" },
+            { level: 20, move: "Pressure Blast" }
         ],
         evolution: { method: "level", level: 16, evolvesTo: 2 },
         catchRate: 45,
@@ -24,11 +24,11 @@ const TRAIN_SPECIES = {
         types: ["STEAM"],
         baseStats: { hp: 60, attack: 62, defense: 63, speed: 60, special: 80 },
         learnset: [
-            { level: 1, move: "Whistle" },
-            { level: 7, move: "Coal Throw" },
-            { level: 13, move: "Steam Jet" },
-            { level: 20, move: "Boiler Burst" },
-            { level: 32, move: "Pressure Blast" }
+            { level: 1, move: "Coal Throw" },
+            { level: 7, move: "Steam Jet" },
+            { level: 13, move: "Boiler Burst" },
+            { level: 20, move: "Pressure Blast" },
+            { level: 32, move: "Mega Steam" }
         ],
         evolution: { method: "level", level: 32, evolvesTo: 3 },
         catchRate: 45,
@@ -40,12 +40,12 @@ const TRAIN_SPECIES = {
         types: ["STEAM", "FREIGHT"],
         baseStats: { hp: 80, attack: 82, defense: 83, speed: 80, special: 100 },
         learnset: [
-            { level: 1, move: "Whistle" },
-            { level: 7, move: "Coal Throw" },
-            { level: 13, move: "Steam Jet" },
-            { level: 20, move: "Boiler Burst" },
-            { level: 32, move: "Pressure Blast" },
-            { level: 45, move: "Mega Steam" }
+            { level: 1, move: "Coal Throw" },
+            { level: 7, move: "Steam Jet" },
+            { level: 13, move: "Boiler Burst" },
+            { level: 20, move: "Pressure Blast" },
+            { level: 32, move: "Mega Steam" },
+            { level: 45, move: "Container Crush" }
         ],
         evolution: null,
         catchRate: 45,
