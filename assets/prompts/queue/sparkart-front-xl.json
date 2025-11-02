@@ -1,0 +1,16 @@
+{
+  "name": "sparkart-front-xl",
+  "prompt": "pixel art, sleek electric bullet train, silver blue color, streamlined nose, lightning bolt markings, glowing lights, front view, game sprite, retro style",
+  "negative_prompt": "blurry, photo, realistic, 3d, steam locomotive, human, animal, not a train",
+  "width": 256,
+  "height": 256,
+  "steps": 30,
+  "cfg_scale": 7,
+  "sampler_name": "DPM++ 2M Karras",
+  "batch_size": 1,
+  "n_iter": 10,
+  "seed": -1,
+  "override_settings": {
+    "sd_model_checkpoint": "pixel-art-xl-v1.1.safetensors"
+  }
+}
