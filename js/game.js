@@ -38,6 +38,14 @@ function Game(canvas) {
         { label: 'Close Debug Menu', action: 'close' }
     ];
 
+    // Pause menu system
+    this.menuSelection = 0;
+    this.menuOptions = ['TRAINS', 'BAG', 'SAVE', 'CLOSE'];
+    this.bagSelection = 0;
+    this.bagMode = 'list'; // 'list', 'use_on_train'
+    this.selectedItem = null;
+    this.trainSelection = 0;
+
     // Initialize maps
     this.initMaps();
 
@@ -129,6 +137,9 @@ Game.prototype.update = function(deltaTime) {
             break;
         case CONSTANTS.STATES.BATTLE:
             this.updateBattle(deltaTime);
+            break;
+        case CONSTANTS.STATES.MENU:
+            this.updateMenu();
             break;
         case 'debug':
             this.updateDebugMenu();
@@ -270,6 +281,15 @@ Game.prototype.updateStarterSelection = function() {
 };
 
 Game.prototype.updateOverworld = function(deltaTime) {
+    // Open pause menu with Escape key (only when not moving)
+    if (!this.player.isMoving && this.input.isKeyJustPressed('Escape')) {
+        this.state = CONSTANTS.STATES.MENU;
+        this.menuSelection = 0;
+        this.bagMode = 'list';
+        console.log('→ MENU');
+        return;
+    }
+
     // Track if player just finished moving
     const wasMoving = this.player.isMoving;
 
@@ -306,13 +326,6 @@ Game.prototype.updateOverworld = function(deltaTime) {
         }
     }
 
-    // ESC to return to title (for testing)
-    if (this.input.isKeyJustPressed('Escape')) {
-        if (confirm('Return to title screen?')) {
-            this.state = CONSTANTS.STATES.TITLE;
-            console.log('→ TITLE');
-        }
-    }
 };
 
 Game.prototype.checkWarpTransition = function() {
@@ -461,6 +474,9 @@ Game.prototype.render = function() {
             break;
         case CONSTANTS.STATES.BATTLE:
             this.renderBattle(ctx);
+            break;
+        case CONSTANTS.STATES.MENU:
+            this.renderMenu(ctx);
             break;
         case 'debug':
             this.renderDebugMenu(ctx);
@@ -772,5 +788,128 @@ Game.prototype.importSaveToken = function(token) {
     } catch (err) {
         console.error('Import failed:', err);
         return false;
+    }
+};
+// TEMP FILE: Menu methods to add to game.js before final line
+// Add these methods before the final closing of game.js
+
+Game.prototype.updateMenu = function() {
+    // BAG mode with item usage
+    if (this.menuOptions[this.menuSelection] === 'BAG' && this.bagMode === 'use_on_train') {
+        // Navigate trains
+        if (this.input.isKeyJustPressed('ArrowUp') || this.input.isVirtualKeyJustPressed('up')) {
+            this.trainSelection = Math.max(0, this.trainSelection - 1);
+        } else if (this.input.isKeyJustPressed('ArrowDown') || this.input.isVirtualKeyJustPressed('down')) {
+            this.trainSelection = Math.min(this.player.party.length - 1, this.trainSelection + 1);
+        }
+
+        // Select train to use item on
+        if (this.input.isKeyJustPressed('Enter') || this.input.isKeyJustPressed('z') || this.input.isVirtualKeyJustPressed('a')) {
+            const train = this.player.party[this.trainSelection];
+            const itemName = this.selectedItem;
+
+            if (itemName === 'potion' && train.currentHP < train.stats.hp) {
+                train.heal(20);
+                this.player.items.potion = Math.max(0, this.player.items.potion - 1);
+                this.bagMode = 'list';
+                this.selectedItem = null;
+                console.log(`Used Potion on ${train.name}`);
+            } else if (itemName === 'super_potion' && train.currentHP < train.stats.hp) {
+                train.heal(50);
+                this.player.items.super_potion = Math.max(0, this.player.items.super_potion - 1);
+                this.bagMode = 'list';
+                this.selectedItem = null;
+                console.log(`Used Super Potion on ${train.name}`);
+            }
+        }
+
+        // Cancel
+        if (this.input.isKeyJustPressed('Backspace') || this.input.isKeyJustPressed('x') || this.input.isVirtualKeyJustPressed('b')) {
+            this.bagMode = 'list';
+            this.selectedItem = null;
+        }
+        return;
+    }
+
+    // BAG mode - list items
+    if (this.menuOptions[this.menuSelection] === 'BAG') {
+        const items = Object.keys(this.player.items).filter(item => this.player.items[item] > 0);
+
+        if (items.length > 0) {
+            if (this.input.isKeyJustPressed('ArrowUp') || this.input.isVirtualKeyJustPressed('up')) {
+                this.bagSelection = Math.max(0, this.bagSelection - 1);
+            } else if (this.input.isKeyJustPressed('ArrowDown') || this.input.isVirtualKeyJustPressed('down')) {
+                this.bagSelection = Math.min(items.length - 1, this.bagSelection + 1);
+            }
+
+            // Use item
+            if (this.input.isKeyJustPressed('Enter') || this.input.isKeyJustPressed('z') || this.input.isVirtualKeyJustPressed('a')) {
+                const selectedItem = items[this.bagSelection];
+
+                if (selectedItem === 'pokeball') {
+                    console.log("Can't use Trainballs here!");
+                } else if (selectedItem === 'potion' || selectedItem === 'super_potion') {
+                    this.selectedItem = selectedItem;
+                    this.bagMode = 'use_on_train';
+                    this.trainSelection = 0;
+                }
+            }
+        }
+
+        // Back to main menu
+        if (this.input.isKeyJustPressed('Backspace') || this.input.isKeyJustPressed('x') || this.input.isVirtualKeyJustPressed('b')) {
+            this.menuSelection = 0;
+        }
+        return;
+    }
+
+    // Main menu navigation
+    if (this.input.isKeyJustPressed('ArrowUp') || this.input.isVirtualKeyJustPressed('up')) {
+        this.menuSelection = Math.max(0, this.menuSelection - 1);
+    } else if (this.input.isKeyJustPressed('ArrowDown') || this.input.isVirtualKeyJustPressed('down')) {
+        this.menuSelection = Math.min(this.menuOptions.length - 1, this.menuSelection + 1);
+    }
+
+    // Select menu option
+    if (this.input.isKeyJustPressed('Enter') || this.input.isKeyJustPressed('z') || this.input.isVirtualKeyJustPressed('a')) {
+        const option = this.menuOptions[this.menuSelection];
+
+        if (option === 'TRAINS') {
+            console.log('TRAINS menu - not yet implemented');
+        } else if (option === 'BAG') {
+            this.bagSelection = 0;
+            this.bagMode = 'list';
+        } else if (option === 'SAVE') {
+            this.saveGame();
+            console.log('Game saved!');
+        } else if (option === 'CLOSE') {
+            this.state = CONSTANTS.STATES.OVERWORLD;
+            console.log('→ OVERWORLD');
+        }
+    }
+
+    // Close menu with B/X
+    if (this.input.isKeyJustPressed('Backspace') || this.input.isKeyJustPressed('x') || this.input.isVirtualKeyJustPressed('b') || this.input.isKeyJustPressed('Escape')) {
+        this.state = CONSTANTS.STATES.OVERWORLD;
+        console.log('→ OVERWORLD');
+    }
+};
+
+Game.prototype.renderMenu = function() {
+    // Render overworld behind menu
+    this.renderOverworld();
+
+    // Draw semi-transparent overlay
+    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+    if (this.menuOptions[this.menuSelection] === 'BAG') {
+        if (this.bagMode === 'use_on_train') {
+            UI.drawBagUseOnTrain(this.ctx, this.player, this.trainSelection, this.selectedItem);
+        } else {
+            UI.drawBag(this.ctx, this.player, this.bagSelection);
+        }
+    } else {
+        UI.drawPauseMenu(this.ctx, this.menuOptions, this.menuSelection);
     }
 };

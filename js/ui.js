@@ -110,6 +110,134 @@ class UI {
             ctx.fillText(type, typeX + 10, typeY + 20);
         }
     }
+
+    static drawPauseMenu(ctx, options, selectedIndex) {
+        const x = 500;
+        const y = 100;
+        const width = 250;
+        const height = 200;
+
+        // Draw box
+        ctx.fillStyle = CONSTANTS.COLORS.WHITE;
+        ctx.fillRect(x, y, width, height);
+        ctx.strokeStyle = CONSTANTS.COLORS.BLACK;
+        ctx.lineWidth = 3;
+        ctx.strokeRect(x, y, width, height);
+
+        // Draw options
+        ctx.font = '20px monospace';
+        const lineHeight = 40;
+
+        for (let i = 0; i < options.length; i++) {
+            const optionY = y + 40 + i * lineHeight;
+
+            // Highlight selected
+            if (i === selectedIndex) {
+                ctx.fillStyle = CONSTANTS.COLORS.UI_HIGHLIGHT;
+                ctx.fillRect(x + 10, optionY - 25, width - 20, lineHeight - 5);
+                ctx.fillStyle = CONSTANTS.COLORS.WHITE;
+            } else {
+                ctx.fillStyle = CONSTANTS.COLORS.BLACK;
+            }
+
+            ctx.fillText(options[i], x + 30, optionY);
+        }
+    }
+
+    static drawBag(ctx, player, bagSelection) {
+        const x = 50;
+        const y = 100;
+        const width = 650;
+        const height = 450;
+
+        // Draw box
+        ctx.fillStyle = CONSTANTS.COLORS.WHITE;
+        ctx.fillRect(x, y, width, height);
+        ctx.strokeStyle = CONSTANTS.COLORS.BLACK;
+        ctx.lineWidth = 3;
+        ctx.strokeRect(x, y, width, height);
+
+        // Title
+        ctx.fillStyle = CONSTANTS.COLORS.BLACK;
+        ctx.font = 'bold 24px monospace';
+        ctx.fillText('BAG', x + 20, y + 40);
+
+        // Item list
+        ctx.font = '20px monospace';
+        const lineHeight = 40;
+        const items = [
+            { name: 'Potion', count: player.items.potion },
+            { name: 'Super Potion', count: player.items.super_potion },
+            { name: 'Trainball', count: player.items.pokeball },
+            { name: 'Train Ticket', count: player.items.train_ticket }
+        ];
+
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            const itemY = y + 100 + i * lineHeight;
+
+            // Highlight selected
+            if (i === bagSelection) {
+                ctx.fillStyle = CONSTANTS.COLORS.UI_HIGHLIGHT;
+                ctx.fillRect(x + 10, itemY - 25, width - 20, lineHeight - 5);
+                ctx.fillStyle = CONSTANTS.COLORS.WHITE;
+            } else {
+                ctx.fillStyle = CONSTANTS.COLORS.BLACK;
+            }
+
+            ctx.fillText(`${item.name} x${item.count}`, x + 30, itemY);
+        }
+
+        // Instructions
+        ctx.fillStyle = CONSTANTS.COLORS.BLACK;
+        ctx.font = '16px monospace';
+        ctx.fillText('Press A to use • B to exit', x + 20, y + height - 20);
+    }
+
+    static drawBagUseOnTrain(ctx, player, trainSelection, itemName) {
+        const x = 100;
+        const y = 150;
+        const width = 550;
+        const height = 350;
+
+        // Draw box
+        ctx.fillStyle = CONSTANTS.COLORS.WHITE;
+        ctx.fillRect(x, y, width, height);
+        ctx.strokeStyle = CONSTANTS.COLORS.BLACK;
+        ctx.lineWidth = 3;
+        ctx.strokeRect(x, y, width, height);
+
+        // Title
+        ctx.fillStyle = CONSTANTS.COLORS.BLACK;
+        ctx.font = 'bold 20px monospace';
+        ctx.fillText(`Use ${itemName} on which train?`, x + 20, y + 35);
+
+        // Train list
+        ctx.font = '18px monospace';
+        const lineHeight = 50;
+
+        for (let i = 0; i < player.party.length; i++) {
+            const train = player.party[i];
+            const trainY = y + 80 + i * lineHeight;
+
+            // Highlight selected
+            if (i === trainSelection) {
+                ctx.fillStyle = CONSTANTS.COLORS.UI_HIGHLIGHT;
+                ctx.fillRect(x + 10, trainY - 30, width - 20, lineHeight - 5);
+                ctx.fillStyle = CONSTANTS.COLORS.WHITE;
+            } else {
+                ctx.fillStyle = CONSTANTS.COLORS.BLACK;
+            }
+
+            const hpPercent = Math.floor((train.currentHP / train.stats.hp) * 100);
+            ctx.fillText(`${train.name} Lv${train.level} HP: ${train.currentHP}/${train.stats.hp} (${hpPercent}%)`, x + 20, trainY);
+        }
+
+        // Instructions
+        ctx.fillStyle = CONSTANTS.COLORS.BLACK;
+        ctx.font = '16px monospace';
+        ctx.fillText('Press A to use • B to cancel', x + 20, y + height - 20);
+    }
 }
 
 class DialogueBox {
