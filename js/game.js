@@ -78,6 +78,11 @@ Game.prototype.initMaps = function() {
         // Fallback to pallet_town
         this.currentMap = this.maps['pallet_town'];
     }
+
+    // Add gym map (from coal_harbor_gym.js)
+    if (typeof createCoalHarborGym === 'function') {
+        this.maps['coal_harbor_gym'] = createCoalHarborGym();
+    }
 };
 
 Game.prototype.preloadStarterSprites = function() {

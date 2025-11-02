@@ -74,6 +74,8 @@ const WORLD_MAPS = {
       { from: rect(2, 3), to: { mapId: 'PlayerHouse', ...pos(3, 6, 'down') } },
       // door into Lab
       { from: rect(9, 5), to: { mapId: 'LabInterior', ...pos(4, 7, 'down') } },
+      // door into Coal Harbor Gym
+      { from: rect(5, 7), to: { mapId: 'coal_harbor_gym', ...pos(7, 13, 'down') } },
       // door into Depot
       { from: rect(15, 9), to: { mapId: 'HealingDepot', ...pos(3, 6, 'down') } },
       // door into Mart

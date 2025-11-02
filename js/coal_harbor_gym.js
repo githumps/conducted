@@ -26,6 +26,11 @@ function createCoalHarborGym() {
     // Add an exit door
     map.tiles[14][7] = 12; // Door
 
+    // Add warps (return to town)
+    map.warps = [
+        { from: { x: 7, y: 14, width: 1, height: 1 }, to: { mapId: 'PistonTown', x: 5, y: 8, direction: 'down' } }
+    ];
+
     // Add Gym Leader Marina
     map.npcs.push({
         id: 'gym_leader_marina',
