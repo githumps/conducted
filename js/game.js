@@ -6,7 +6,7 @@
 function Game(canvas) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
-    this.state = CONSTANTS.STATES.TITLE;
+    this.state = 'loading'; // Start in loading state
 
     // Core systems
     this.input = new InputHandler();
@@ -24,6 +24,8 @@ function Game(canvas) {
 
     // Image storage
     this.images = {};
+    this.imagesLoaded = false;
+    this.loadingProgress = 0;
 
     // Initialize maps
     this.initMaps();
@@ -53,17 +55,52 @@ Game.prototype.initMaps = function() {
 
 Game.prototype.preloadStarterSprites = function() {
     const starters = ['Steamini', 'Sparkart', 'Diesling'];
+    const characters = ['professor-cypress-1']; // Character sprites to load
+    const allImages = [...starters, ...characters];
+    let loadedCount = 0;
+    const totalImages = allImages.length;
+
+    const onImageLoad = (name) => {
+        loadedCount++;
+        this.loadingProgress = loadedCount / totalImages;
+        console.log(`✅ Loaded ${name} (${loadedCount}/${totalImages})`);
+        if (loadedCount === totalImages) {
+            this.imagesLoaded = true;
+            this.state = CONSTANTS.STATES.TITLE;
+            console.log('✅ All sprites loaded');
+        }
+    };
+
+    const onImageError = (name) => {
+        console.error(`❌ Failed to load sprite: ${name}`);
+        loadedCount++;
+        this.loadingProgress = loadedCount / totalImages;
+    };
+
+    // Load starter sprites
     for (const starter of starters) {
         const img = new Image();
+        img.onload = () => onImageLoad(starter);
+        img.onerror = () => onImageError(starter);
         img.src = `assets/sprites/${starter}/front.png`;
         this.images[starter] = img;
+    }
+
+    // Load character sprites
+    for (const character of characters) {
+        const img = new Image();
+        img.onload = () => onImageLoad(character);
+        img.onerror = () => onImageError(character);
+        img.src = `assets/sprites/characters/${character}.png`;
+        this.images[character] = img;
     }
 };
 
 Game.prototype.update = function(deltaTime) {
-    if (!this.currentMap) return;
-
     switch (this.state) {
+        case 'loading':
+            // Images are loading, wait for completion
+            break;
         case CONSTANTS.STATES.TITLE:
             this.updateTitle();
             break;
@@ -261,6 +298,9 @@ Game.prototype.render = function() {
     ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
     switch (this.state) {
+        case 'loading':
+            this.renderLoading(ctx);
+            break;
         case CONSTANTS.STATES.TITLE:
             this.renderTitle(ctx);
             break;
@@ -277,6 +317,31 @@ Game.prototype.render = function() {
             this.renderBattle(ctx);
             break;
     }
+};
+
+Game.prototype.renderLoading = function(ctx) {
+    ctx.fillStyle = CONSTANTS.COLORS.WHITE;
+    ctx.font = '24px monospace';
+    ctx.fillText('Loading...', 300, 280);
+
+    // Progress bar
+    const barWidth = 400;
+    const barHeight = 30;
+    const barX = (this.canvas.width - barWidth) / 2;
+    const barY = 320;
+
+    // Border
+    ctx.strokeStyle = CONSTANTS.COLORS.WHITE;
+    ctx.strokeRect(barX, barY, barWidth, barHeight);
+
+    // Fill
+    ctx.fillStyle = CONSTANTS.COLORS.UI_HIGHLIGHT;
+    ctx.fillRect(barX + 2, barY + 2, (barWidth - 4) * this.loadingProgress, barHeight - 4);
+
+    ctx.font = '16px monospace';
+    const percent = Math.floor(this.loadingProgress * 100);
+    ctx.fillStyle = CONSTANTS.COLORS.WHITE;
+    ctx.fillText(`${percent}%`, 360, 370);
 };
 
 Game.prototype.renderTitle = function(ctx) {
@@ -310,11 +375,18 @@ Game.prototype.renderIntro = function(ctx) {
 
     const dialogue = this.introScene.getCurrentDialogue();
     if (dialogue) {
+        // Draw professor sprite if available
+        const professorSprite = this.images['professor-cypress-1'];
+        if (professorSprite && professorSprite.complete && dialogue.speaker === 'Professor Cypress') {
+            ctx.drawImage(professorSprite, 50, 200, 128, 128);
+        }
+
         ctx.fillStyle = CONSTANTS.COLORS.WHITE;
+        ctx.font = '20px monospace';
+        ctx.fillText(dialogue.speaker, 200, 250);
         ctx.font = '16px monospace';
-        ctx.fillText(dialogue.speaker, 50, 100);
-        this.wrapText(ctx, dialogue.text, 50, 150, 600, 25);
-        ctx.fillText('Press ENTER to continue', 50, 600);
+        this.wrapText(ctx, dialogue.text, 200, 280, 550, 25);
+        ctx.fillText('Press ENTER to continue', 250, 600);
     }
 };
 
