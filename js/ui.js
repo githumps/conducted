@@ -111,11 +111,11 @@ class UI {
         }
     }
 
-    static drawPauseMenu(ctx, options, selectedIndex) {
+    static drawPauseMenu(ctx, options, selectedIndex, player) {
         const x = 500;
         const y = 100;
         const width = 250;
-        const height = 200;
+        const height = 250;
 
         // Draw box
         ctx.fillStyle = CONSTANTS.COLORS.WHITE;
@@ -142,6 +142,11 @@ class UI {
 
             ctx.fillText(options[i], x + 30, optionY);
         }
+
+        // Draw money at bottom
+        ctx.fillStyle = CONSTANTS.COLORS.BLACK;
+        ctx.font = '16px monospace';
+        ctx.fillText(`MONEY: $${player.money}`, x + 30, y + height - 20);
     }
 
     static drawBag(ctx, player, bagSelection) {

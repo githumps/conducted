@@ -910,6 +910,6 @@ Game.prototype.renderMenu = function() {
             UI.drawBag(this.ctx, this.player, this.bagSelection);
         }
     } else {
-        UI.drawPauseMenu(this.ctx, this.menuOptions, this.menuSelection);
+        UI.drawPauseMenu(this.ctx, this.menuOptions, this.menuSelection, this.player);
     }
 };
