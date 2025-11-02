@@ -1,0 +1,16 @@
+{
+  "name": "steamini-v4",
+  "prompt": "pixel art sprite, cute chibi steam locomotive train character, centered front view, simple rounded orange-copper body, small black smokestack, big friendly face, tiny wheels, clean pixel outlines, flat solid colors, minimal shading, game character sprite, plain background",
+  "negative_prompt": "realistic, 3d, photo, multiple objects, side view, complex details, gradient background, circle background, messy, blurry, tracks, scenery",
+  "width": 512,
+  "height": 512,
+  "steps": 35,
+  "cfg_scale": 7.5,
+  "sampler_name": "Euler a",
+  "batch_size": 1,
+  "n_iter": 1,
+  "seed": -1,
+  "override_settings": {
+    "sd_model_checkpoint": "pixel-art-xl-v1.1.safetensors"
+  }
+}
