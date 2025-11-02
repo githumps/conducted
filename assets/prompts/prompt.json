@@ -1,0 +1,14 @@
+{
+  "name": "piston-town-tiles",
+  "prompt": "16x16 pixel-art tileset for a cozy starter town (Piston Town): small houses, rail tracks, crossings, grass, trees, dirt paths, signposts. Warm muted palette, clean outlines, consistent tile boundaries, game-ready grid. Retro video game aesthetic.",
+  "negative_prompt": "photo, 3d render, realistic, smear, low contrast, noisy edges, non-grid layout, text, watermark",
+  "width": 512,
+  "height": 512,
+  "steps": 30,
+  "cfg_scale": 7,
+  "sampler_name": "DPM++ 2M Karras",
+  "batch_size": 1,
+  "n_iter": 1,
+  "seed": -1,
+  "model": ""
+}
