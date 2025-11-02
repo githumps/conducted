@@ -40,7 +40,7 @@ function Game(canvas) {
 
     // Pause menu system
     this.menuSelection = 0;
-    this.menuOptions = ['TRAINS', 'BAG', 'SAVE', 'CLOSE'];
+    this.menuOptions = ['TRAINS', 'BAG', 'HEAL', 'SAVE', 'CLOSE'];
     this.bagSelection = 0;
     this.bagMode = 'list'; // 'list', 'use_on_train'
     this.selectedItem = null;
@@ -879,6 +879,14 @@ Game.prototype.updateMenu = function() {
         } else if (option === 'BAG') {
             this.bagSelection = 0;
             this.bagMode = 'list';
+        } else if (option === 'HEAL') {
+            this.player.healAllTrains();
+            console.log('All trains healed to full HP!');
+            // Brief visual feedback then return to overworld
+            setTimeout(() => {
+                this.state = CONSTANTS.STATES.OVERWORLD;
+                console.log('→ OVERWORLD');
+            }, 1000);
         } else if (option === 'SAVE') {
             this.saveGame();
             console.log('Game saved!');

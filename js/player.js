@@ -147,6 +147,15 @@ class Player {
         return this.badges.includes(badgeName);
     }
 
+    healAllTrains() {
+        // Heal all trains in party to full HP and remove status effects
+        for (let train of this.party) {
+            train.currentHP = train.stats.hp;
+            train.status = null;
+        }
+        console.log('All trains healed to full HP!');
+    }
+
     toJSON() {
         return {
             name: this.name,
