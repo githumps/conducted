@@ -1,0 +1,14 @@
+{
+  "name": "steamini-front",
+  "prompt": "Pixel-art 64x64 front battle sprite of Steamini, a cute copper-colored steam locomotive train. Round friendly boiler, small smokestack puffing white steam, large headlamp eye, warm copper and brass colors, clean black outline, 16-color palette maximum, retro dithered shading, facing forward toward camera, Game Boy Advance Pokemon battle sprite style, no background, transparent or solid color background.",
+  "negative_prompt": "photo, realistic, 3d render, blur, extra wheels, incorrect proportions, text, watermark, scenery, tracks, background elements, modern graphics",
+  "width": 64,
+  "height": 64,
+  "steps": 40,
+  "cfg_scale": 7.5,
+  "sampler_name": "DPM++ 2M Karras",
+  "batch_size": 1,
+  "n_iter": 5,
+  "seed": -1,
+  "model": ""
+}

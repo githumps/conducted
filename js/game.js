@@ -104,10 +104,12 @@ Game.prototype.updateStarterSelection = function() {
             ss.confirmSelection();
         }
     } else if (ss.phase === 'confirmation') {
-        if (this.input.isKeyJustPressed('Enter') || this.input.isKeyJustPressed('z') || this.input.isVirtualKeyJustPressed('a')) {
-            ss.confirmSelection();
-        } else if (this.input.isKeyJustPressed('Backspace') || this.input.isKeyJustPressed('x') || this.input.isVirtualKeyJustPressed('b')) {
+        // Check CANCEL first (B/X/Backspace)
+        if (this.input.isKeyJustPressed('Backspace') || this.input.isKeyJustPressed('x') || this.input.isVirtualKeyJustPressed('b')) {
             ss.cancelSelection();
+            console.log('Cancelled starter selection');
+        } else if (this.input.isKeyJustPressed('Enter') || this.input.isKeyJustPressed('z') || this.input.isVirtualKeyJustPressed('a')) {
+            ss.confirmSelection();
         }
     } else if (ss.phase === 'post-selection') {
         if (this.input.isKeyJustPressed('Enter') || this.input.isKeyJustPressed('z') || this.input.isVirtualKeyJustPressed('a')) {

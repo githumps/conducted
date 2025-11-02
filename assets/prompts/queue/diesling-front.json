@@ -1,0 +1,14 @@
+{
+  "name": "diesling-front",
+  "prompt": "Pixel-art 64x64 front battle sprite of Diesling, a sturdy brown diesel locomotive. Boxy industrial design, dark brown and rust colors, heavy-duty construction, prominent grille, amber headlights, clean black outline, 16-color palette, retro dithered shading, facing forward toward camera, Game Boy Advance Pokemon battle sprite style, dependable strong appearance, no background.",
+  "negative_prompt": "photo, realistic, 3d render, blur, steam, electric, text, watermark, background, tracks, modern",
+  "width": 64,
+  "height": 64,
+  "steps": 40,
+  "cfg_scale": 7.5,
+  "sampler_name": "DPM++ 2M Karras",
+  "batch_size": 1,
+  "n_iter": 5,
+  "seed": -1,
+  "model": ""
+}

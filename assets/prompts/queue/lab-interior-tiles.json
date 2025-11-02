@@ -1,0 +1,14 @@
+{
+  "name": "lab-interior-tiles",
+  "prompt": "16x16 pixel-art tileset for Professor Cypress's research lab interior: wooden floor planks, interior walls, bookshelves, research tables, scientific equipment, train diagrams on walls, potted plants, doorway, windows. Warm indoor lighting, browns and creams, clean black outlines, consistent 16x16 grid, retro Game Boy Color interior style, cozy academic atmosphere, organized tileset layout, no text.",
+  "negative_prompt": "photo, 3d, realistic, outdoor, messy tiles, off-grid, text, watermark, blurry, modern graphics, sci-fi",
+  "width": 512,
+  "height": 512,
+  "steps": 36,
+  "cfg_scale": 7.5,
+  "sampler_name": "DPM++ 2M Karras",
+  "batch_size": 1,
+  "n_iter": 3,
+  "seed": -1,
+  "model": ""
+}
