@@ -401,11 +401,39 @@ Game.prototype.updateBattle = function(deltaTime) {
         this.battle.handleInput('b');
     }
 
+    // Handle battle completion
     if (this.battle.isComplete && this.battle.isComplete()) {
+        // Check if player was defeated
+        if (this.battle.state === CONSTANTS.BATTLE_STATES.DEFEAT) {
+            this.handleDefeat();
+        }
+
         this.battle = null;
         this.state = CONSTANTS.STATES.OVERWORLD;
         console.log('→ OVERWORLD');
     }
+};
+
+Game.prototype.handleDefeat = function() {
+    console.log('Player defeated - triggering blackout');
+
+    // Heal all trains to full HP
+    this.player.healParty();
+
+    // Reduce money by 50% (or set to 0 if less than 100)
+    if (this.player.money < 100) {
+        this.player.money = 0;
+    } else {
+        this.player.money = Math.floor(this.player.money * 0.5);
+    }
+
+    // Teleport player back to Piston Town (default healing depot spawn point)
+    this.player.x = 10;
+    this.player.y = 7;
+    this.player.currentMap = 'piston_town';
+    this.player.direction = CONSTANTS.DIRECTIONS.DOWN;
+
+    console.log(`Blackout - Money reduced to ${this.player.money}, teleported to Piston Town`);
 };
 
 Game.prototype.render = function() {

@@ -501,9 +501,21 @@ class Battle {
     render(ctx) {
         const canvas = ctx.canvas;
 
-        // Background
-        ctx.fillStyle = '#FFFFFF';
+        // Background gradient (grass/route default)
+        const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        gradient.addColorStop(0, '#90EE90'); // Light green (sky)
+        gradient.addColorStop(0.6, '#228B22'); // Forest green (ground)
+        ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Ground line (horizon)
+        const horizonY = canvas.height * 0.6;
+        ctx.strokeStyle = '#1a6b1a';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, horizonY);
+        ctx.lineTo(canvas.width, horizonY);
+        ctx.stroke();
 
         // Calculate animation offsets
         const enemyShakeX = this.enemyShake > 0 ? Math.sin(Date.now() * 0.05) * this.enemyShake * 2 : 0;
@@ -681,6 +693,10 @@ class Battle {
             }
         }
         ctx.fillText(line, x, currentY);
+    }
+
+    isComplete() {
+        return this.battleEnded;
     }
 }
 
