@@ -308,6 +308,12 @@ Game.prototype.updateOverworld = function(deltaTime) {
 
     // Player movement (only if not currently moving)
     if (!this.player.isMoving) {
+        // Check for NPC interaction (A button)
+        if (this.input.isKeyJustPressed('Enter') || this.input.isKeyJustPressed('z') || this.input.isVirtualKeyJustPressed('a')) {
+            this.checkNPCInteraction();
+            return; // Don't process movement if interacting
+        }
+
         if (this.input.isKeyJustPressed('ArrowUp') || this.input.isVirtualKeyJustPressed('up')) {
             this.player.move(CONSTANTS.DIRECTIONS.UP, this.currentMap);
         } else if (this.input.isKeyJustPressed('ArrowDown') || this.input.isVirtualKeyJustPressed('down')) {
@@ -334,6 +340,101 @@ Game.prototype.updateOverworld = function(deltaTime) {
         }
     }
 
+};
+
+Game.prototype.checkNPCInteraction = function() {
+    if (!this.currentMap.npcs || this.currentMap.npcs.length === 0) return;
+
+    // Calculate tile player is facing
+    let facingX = this.player.x;
+    let facingY = this.player.y;
+
+    switch (this.player.direction) {
+        case CONSTANTS.DIRECTIONS.UP:
+            facingY--;
+            break;
+        case CONSTANTS.DIRECTIONS.DOWN:
+            facingY++;
+            break;
+        case CONSTANTS.DIRECTIONS.LEFT:
+            facingX--;
+            break;
+        case CONSTANTS.DIRECTIONS.RIGHT:
+            facingX++;
+            break;
+    }
+
+    // Find NPC at facing position
+    const npc = this.currentMap.npcs.find(n => n.x === facingX && n.y === facingY);
+
+    if (npc) {
+        // Start trainer battle if applicable
+        if ((npc.type === 'trainer' || npc.type === 'gym_leader') && npc.canBattle && !npc.defeated) {
+            this.startTrainerBattle(npc);
+        } else {
+            // Show dialogue for defeated trainers or non-battle NPCs
+            const dialogue = npc.defeated && npc.defeatDialogue ? npc.defeatDialogue : npc.dialogue;
+            if (dialogue && dialogue.length > 0) {
+                console.log(`${npc.name}: ${dialogue[0].text}`);
+            }
+        }
+    }
+};
+
+Game.prototype.startTrainerBattle = function(npc) {
+    if (this.player.party.length === 0) {
+        console.warn('Cannot start trainer battle - no trains in party');
+        return;
+    }
+
+    console.log(`Starting trainer battle with ${npc.name}...`);
+
+    // Show dialogue first (for now just log it, could use DialogueBox later)
+    if (npc.dialogue && npc.dialogue.length > 0) {
+        console.log(`${npc.dialogue[0].text}`);
+    }
+
+    // Generate enemy trains from NPC party data
+    const enemyTrains = npc.party.map(data => {
+        const species = TRAIN_DATA.find(t => t.id === data.speciesId);
+        if (!species) {
+            console.error(`Species not found: ${data.speciesId}`);
+            return null;
+        }
+        return new Train(species, data.level);
+    }).filter(t => t !== null);
+
+    if (enemyTrains.length === 0) {
+        console.error('No valid enemy trains!');
+        return;
+    }
+
+    // Create trainer battle
+    this.battle = new Battle(this.player.party, enemyTrains, false, npc);
+
+    // Set up victory callback for defeat tracking and badges
+    const originalOnVictory = this.battle.onVictory;
+    this.battle.onVictory = () => {
+        // Mark trainer as defeated
+        npc.defeated = true;
+        console.log(`${npc.name} defeated!`);
+
+        // Award badge if gym leader
+        if (npc.type === 'gym_leader' && npc.badge) {
+            const earned = this.player.earnBadge(npc.badge);
+            if (earned) {
+                console.log(`🏅 Earned ${npc.badge}!`);
+            }
+        }
+
+        // Call original callback if exists
+        if (originalOnVictory) {
+            originalOnVictory();
+        }
+    };
+
+    this.state = CONSTANTS.STATES.BATTLE;
+    console.log('→ BATTLE (Trainer)');
 };
 
 Game.prototype.checkWarpTransition = function() {
@@ -690,6 +791,32 @@ Game.prototype.renderOverworld = function(ctx) {
                 tileSize,
                 tileSize
             );
+        }
+    }
+
+    // Draw NPCs
+    if (this.currentMap.npcs && this.currentMap.npcs.length > 0) {
+        for (const npc of this.currentMap.npcs) {
+            const npcScreenX = (npc.x * tileSize) - clampedCameraX;
+            const npcScreenY = (npc.y * tileSize) - clampedCameraY;
+
+            // Only draw if in visible range
+            if (npcScreenX >= -tileSize && npcScreenX < canvas.width &&
+                npcScreenY >= -tileSize && npcScreenY < canvas.height) {
+
+                // Color based on type and defeated status
+                if (npc.defeated) {
+                    ctx.fillStyle = '#888888'; // Gray for defeated trainers
+                } else if (npc.type === 'gym_leader') {
+                    ctx.fillStyle = '#FFD700'; // Gold for gym leaders
+                } else if (npc.type === 'trainer') {
+                    ctx.fillStyle = '#FF6600'; // Orange for trainers
+                } else {
+                    ctx.fillStyle = '#FFFF00'; // Yellow for NPCs
+                }
+
+                ctx.fillRect(npcScreenX, npcScreenY, tileSize, tileSize);
+            }
         }
     }
 

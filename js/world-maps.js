@@ -138,7 +138,30 @@ const WORLD_MAPS = {
     connections: {
       north: { mapId: 'PistonTown', offsetX: 0, offsetY: 0 } // Connect top edge to PistonTown bottom
     },
-    npcs: [],
+    npcs: [
+      {
+        id: 'route1_youngster_joey',
+        name: 'Youngster Joey',
+        x: 10,
+        y: 7,
+        type: 'trainer',
+        direction: 'down',
+        canBattle: true,
+        defeated: false,
+        baseReward: 50,
+        party: [
+          { speciesId: 1, level: 5 } // Steamini
+        ],
+        dialogue: [
+          { speaker: 'Youngster Joey', text: 'Hey! You look like a new conductor!' },
+          { speaker: 'Youngster Joey', text: 'Let me show you how it\'s done!' }
+        ],
+        defeatDialogue: [
+          { speaker: 'Youngster Joey', text: 'Wow! You\'re really good!' },
+          { speaker: 'Youngster Joey', text: 'I need to train more...' }
+        ]
+      }
+    ],
     getTile: function(x, y) {
       if (x < 0 || x >= this.width || y < 0 || y >= this.height) return 0;
       return this.tiles[y][x];
