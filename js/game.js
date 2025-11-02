@@ -27,6 +27,17 @@ function Game(canvas) {
     this.imagesLoaded = false;
     this.loadingProgress = 0;
 
+    // Debug menu
+    this.debugMenuSelection = 0;
+    this.debugMenuOptions = [
+        { label: 'Title Screen', state: CONSTANTS.STATES.TITLE },
+        { label: 'Intro', state: CONSTANTS.STATES.INTRO },
+        { label: 'Starter Selection', state: CONSTANTS.STATES.STARTER_SELECTION },
+        { label: 'Overworld (Piston Town)', state: CONSTANTS.STATES.OVERWORLD },
+        { label: 'Wild Battle', action: 'wildBattle' },
+        { label: 'Close Debug Menu', action: 'close' }
+    ];
+
     // Initialize maps
     this.initMaps();
 
@@ -97,9 +108,6 @@ Game.prototype.preloadStarterSprites = function() {
 };
 
 Game.prototype.update = function(deltaTime) {
-    // Update input state (CRITICAL: must happen every frame for isKeyJustPressed to work)
-    this.input.update();
-
     switch (this.state) {
         case 'loading':
             // Images are loading, wait for completion
@@ -119,14 +127,95 @@ Game.prototype.update = function(deltaTime) {
         case CONSTANTS.STATES.BATTLE:
             this.updateBattle(deltaTime);
             break;
+        case 'debug':
+            this.updateDebugMenu();
+            break;
     }
 };
 
 Game.prototype.updateTitle = function() {
+    // Debug menu shortcut
+    if (this.input.isKeyJustPressed('`') || this.input.isKeyJustPressed('F1')) {
+        this.state = 'debug';
+        console.log('→ DEBUG MENU');
+        return;
+    }
+
     if (this.input.isKeyJustPressed('Enter') || this.input.isVirtualKeyJustPressed('a')) {
         this.state = CONSTANTS.STATES.INTRO;
         this.introScene = new IntroScene();
         console.log('→ INTRO');
+    }
+};
+
+Game.prototype.updateDebugMenu = function() {
+    // Navigation
+    if (this.input.isKeyJustPressed('ArrowUp') || this.input.isVirtualKeyJustPressed('up')) {
+        this.debugMenuSelection = (this.debugMenuSelection - 1 + this.debugMenuOptions.length) % this.debugMenuOptions.length;
+    }
+    if (this.input.isKeyJustPressed('ArrowDown') || this.input.isVirtualKeyJustPressed('down')) {
+        this.debugMenuSelection = (this.debugMenuSelection + 1) % this.debugMenuOptions.length;
+    }
+
+    // Selection
+    if (this.input.isKeyJustPressed('Enter') || this.input.isKeyJustPressed('z') || this.input.isVirtualKeyJustPressed('a')) {
+        const option = this.debugMenuOptions[this.debugMenuSelection];
+
+        if (option.action === 'close') {
+            this.state = CONSTANTS.STATES.TITLE;
+            console.log('→ TITLE (from debug menu)');
+            return;
+        }
+
+        if (option.action === 'wildBattle') {
+            // Initialize a wild battle
+            this.state = CONSTANTS.STATES.OVERWORLD;
+            // Ensure player has a starter
+            if (!this.player.party || this.player.party.length === 0) {
+                this.player.party = [new Train(1, 5)]; // Steamini (ID 1)
+            }
+            // Trigger wild encounter
+            const wildTrainId = Math.floor(Math.random() * 10) + 1; // Random from IDs 1-10
+            const wildTrain = new Train(wildTrainId, 5);
+            this.battle = new Battle(this.player.party, [wildTrain]);
+            this.state = CONSTANTS.STATES.BATTLE;
+            console.log('→ WILD BATTLE (debug)');
+            return;
+        }
+
+        if (option.state) {
+            // Jump to state
+            switch (option.state) {
+                case CONSTANTS.STATES.TITLE:
+                    this.state = CONSTANTS.STATES.TITLE;
+                    console.log('→ TITLE (debug)');
+                    break;
+                case CONSTANTS.STATES.INTRO:
+                    this.state = CONSTANTS.STATES.INTRO;
+                    this.introScene = new IntroScene();
+                    console.log('→ INTRO (debug)');
+                    break;
+                case CONSTANTS.STATES.STARTER_SELECTION:
+                    this.state = CONSTANTS.STATES.STARTER_SELECTION;
+                    this.starterSelection = new StarterSelection(this);
+                    console.log('→ STARTER_SELECTION (debug)');
+                    break;
+                case CONSTANTS.STATES.OVERWORLD:
+                    this.state = CONSTANTS.STATES.OVERWORLD;
+                    // Ensure player has a starter
+                    if (!this.player.party || this.player.party.length === 0) {
+                        this.player.party = [new Train(1, 5)]; // Steamini (ID 1)
+                    }
+                    console.log('→ OVERWORLD (debug)');
+                    break;
+            }
+        }
+    }
+
+    // ESC or B to close
+    if (this.input.isKeyJustPressed('Escape') || this.input.isKeyJustPressed('x') || this.input.isVirtualKeyJustPressed('b')) {
+        this.state = CONSTANTS.STATES.TITLE;
+        console.log('→ TITLE (from debug menu)');
     }
 };
 
@@ -319,6 +408,9 @@ Game.prototype.render = function() {
         case CONSTANTS.STATES.BATTLE:
             this.renderBattle(ctx);
             break;
+        case 'debug':
+            this.renderDebugMenu(ctx);
+            break;
     }
 };
 
@@ -353,6 +445,36 @@ Game.prototype.renderTitle = function(ctx) {
     ctx.fillText('TRAIN BATTLE RPG', 150, 200);
     ctx.font = '16px monospace';
     ctx.fillText('Press ENTER to start', 250, 300);
+};
+
+Game.prototype.renderDebugMenu = function(ctx) {
+    ctx.fillStyle = CONSTANTS.COLORS.WHITE;
+    ctx.font = '28px monospace';
+    ctx.fillText('DEBUG MENU', 260, 80);
+
+    ctx.font = '14px monospace';
+    ctx.fillStyle = CONSTANTS.COLORS.UI_TEXT;
+    ctx.fillText('Press ` or F1 from title screen to open', 180, 110);
+    ctx.fillText('Arrow Keys: Navigate | Enter: Select | ESC/B: Close', 130, 130);
+
+    const startY = 180;
+    const lineHeight = 40;
+
+    this.debugMenuOptions.forEach((option, index) => {
+        const y = startY + (index * lineHeight);
+        const isSelected = index === this.debugMenuSelection;
+
+        // Selection indicator
+        if (isSelected) {
+            ctx.fillStyle = CONSTANTS.COLORS.UI_HIGHLIGHT;
+            ctx.fillRect(100, y - 25, 560, 35);
+        }
+
+        // Option text
+        ctx.fillStyle = isSelected ? CONSTANTS.COLORS.BLACK : CONSTANTS.COLORS.WHITE;
+        ctx.font = isSelected ? 'bold 18px monospace' : '18px monospace';
+        ctx.fillText(option.label, 120, y);
+    });
 };
 
 Game.prototype.wrapText = function(ctx, text, x, y, maxWidth, lineHeight) {

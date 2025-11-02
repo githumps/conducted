@@ -467,6 +467,132 @@ class Battle {
             }
         });
     }
+
+    render(ctx) {
+        const canvas = ctx.canvas;
+
+        // Background
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Enemy train info (top)
+        if (this.enemyActive) {
+            ctx.fillStyle = '#000000';
+            ctx.font = 'bold 20px monospace';
+            ctx.fillText(this.enemyActive.nickname || this.enemyActive.species.name, 50, 50);
+            ctx.font = '16px monospace';
+            ctx.fillText(`Lv${this.enemyActive.level}`, 50, 75);
+
+            // Enemy HP bar
+            const enemyHPPercent = this.enemyActive.currentHP / this.enemyActive.maxHP;
+            ctx.fillStyle = '#CCCCCC';
+            ctx.fillRect(50, 90, 200, 20);
+            ctx.fillStyle = enemyHPPercent > 0.5 ? '#00FF00' : enemyHPPercent > 0.2 ? '#FFFF00' : '#FF0000';
+            ctx.fillRect(50, 90, 200 * enemyHPPercent, 20);
+            ctx.strokeStyle = '#000000';
+            ctx.strokeRect(50, 90, 200, 20);
+        }
+
+        // Player train info (bottom)
+        if (this.playerActive) {
+            ctx.fillStyle = '#000000';
+            ctx.font = 'bold 20px monospace';
+            ctx.fillText(this.playerActive.nickname || this.playerActive.species.name, 450, 400);
+            ctx.font = '16px monospace';
+            ctx.fillText(`Lv${this.playerActive.level}`, 450, 425);
+
+            // Player HP bar
+            const playerHPPercent = this.playerActive.currentHP / this.playerActive.maxHP;
+            ctx.fillStyle = '#CCCCCC';
+            ctx.fillRect(450, 440, 200, 20);
+            ctx.fillStyle = playerHPPercent > 0.5 ? '#00FF00' : playerHPPercent > 0.2 ? '#FFFF00' : '#FF0000';
+            ctx.fillRect(450, 440, 200 * playerHPPercent, 20);
+            ctx.strokeStyle = '#000000';
+            ctx.strokeRect(450, 440, 200, 20);
+
+            // HP numbers
+            ctx.fillStyle = '#000000';
+            ctx.font = '14px monospace';
+            ctx.fillText(`${this.playerActive.currentHP}/${this.playerActive.maxHP}`, 455, 456);
+        }
+
+        // Message box (bottom)
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(20, 500, canvas.width - 40, 140);
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(20, 500, canvas.width - 40, 140);
+
+        // Display current message
+        ctx.fillStyle = '#000000';
+        ctx.font = '18px monospace';
+        if (this.messages.length > 0 && this.currentMessage < this.messages.length) {
+            const message = this.messages[this.currentMessage];
+            this.wrapText(ctx, message, 40, 530, canvas.width - 80, 25);
+        }
+
+        // Battle menu
+        if (this.state === CONSTANTS.BATTLE_STATES.PLAYER_TURN) {
+            const menuOptions = ['FIGHT', 'TRAIN', 'ITEM', 'RUN'];
+            const menuX = 450;
+            const menuY = 500;
+
+            menuOptions.forEach((option, index) => {
+                const x = menuX + (index % 2) * 140;
+                const y = menuY + Math.floor(index / 2) * 40;
+
+                ctx.fillStyle = index === this.menuSelection ? '#FFD700' : '#FFFFFF';
+                ctx.fillRect(x, y, 130, 35);
+                ctx.strokeStyle = '#000000';
+                ctx.strokeRect(x, y, 130, 35);
+
+                ctx.fillStyle = '#000000';
+                ctx.font = 'bold 16px monospace';
+                ctx.fillText(option, x + 10, y + 23);
+            });
+        }
+
+        // Move selection menu
+        if (this.state === CONSTANTS.BATTLE_STATES.MOVE_SELECTION) {
+            const moves = this.playerActive.moves;
+            const menuX = 450;
+            const menuY = 500;
+
+            moves.forEach((move, index) => {
+                if (move) {
+                    const x = menuX + (index % 2) * 140;
+                    const y = menuY + Math.floor(index / 2) * 40;
+
+                    ctx.fillStyle = index === this.moveSelection ? '#FFD700' : '#FFFFFF';
+                    ctx.fillRect(x, y, 130, 35);
+                    ctx.strokeStyle = '#000000';
+                    ctx.strokeRect(x, y, 130, 35);
+
+                    ctx.fillStyle = '#000000';
+                    ctx.font = 'bold 14px monospace';
+                    ctx.fillText(move.name, x + 5, y + 23);
+                }
+            });
+        }
+    }
+
+    wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+        const words = text.split(' ');
+        let line = '';
+        let currentY = y;
+
+        for (const word of words) {
+            const testLine = line + word + ' ';
+            if (ctx.measureText(testLine).width > maxWidth && line.length > 0) {
+                ctx.fillText(line, x, currentY);
+                line = word + ' ';
+                currentY += lineHeight;
+            } else {
+                line = testLine;
+            }
+        }
+        ctx.fillText(line, x, currentY);
+    }
 }
 
 // Export
