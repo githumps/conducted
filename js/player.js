@@ -149,9 +149,19 @@ class Player {
 
     healAllTrains() {
         // Heal all trains in party to full HP and remove status effects
+        if (!this.party || this.party.length === 0) {
+            console.log('No trains to heal!');
+            return;
+        }
+
         for (let train of this.party) {
-            train.currentHP = train.stats.hp;
+            if (!train || typeof train.maxHP === 'undefined') {
+                console.warn('Skipping invalid train:', train);
+                continue;
+            }
+            train.currentHP = train.maxHP; // Use maxHP, not stats.hp
             train.status = null;
+            train.fainted = false;
         }
         console.log('All trains healed to full HP!');
     }

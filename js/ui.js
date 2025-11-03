@@ -115,7 +115,7 @@ class UI {
         const x = 500;
         const y = 100;
         const width = 250;
-        const height = 250;
+        const height = 320; // Increased from 250 to fit 6 menu items + money
 
         // Draw box
         ctx.fillStyle = CONSTANTS.COLORS.WHITE;

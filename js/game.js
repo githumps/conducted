@@ -248,7 +248,16 @@ Game.prototype.updateDebugMenu = function() {
 };
 
 Game.prototype.updateIntro = function() {
-    if (this.input.isKeyJustPressed('Enter') || this.input.isKeyJustPressed('z') || this.input.isVirtualKeyJustPressed('a')) {
+    // Allow B to go back through intro or return to title
+    if (this.input.isKeyJustPressed('Backspace') || this.input.isKeyJustPressed('x') || this.input.isVirtualKeyJustPressed('b')) {
+        if (this.introScene.currentIndex > 0) {
+            this.introScene.currentIndex--;
+            console.log('Back through intro scene');
+        } else {
+            this.state = CONSTANTS.STATES.TITLE;
+            console.log('→ TITLE (cancelled from intro)');
+        }
+    } else if (this.input.isKeyJustPressed('Enter') || this.input.isKeyJustPressed('z') || this.input.isVirtualKeyJustPressed('a')) {
         if (this.introScene.isComplete()) {
             this.state = CONSTANTS.STATES.STARTER_SELECTION;
             this.starterSelection = new StarterSelection(this);
@@ -264,11 +273,25 @@ Game.prototype.updateStarterSelection = function() {
 
     // Handle input based on phase
     if (ss.phase === 'intro') {
-        if (this.input.isKeyJustPressed('Enter') || this.input.isKeyJustPressed('z') || this.input.isVirtualKeyJustPressed('a')) {
+        // Allow B to go back through dialogue or return to title
+        if (this.input.isKeyJustPressed('Backspace') || this.input.isKeyJustPressed('x') || this.input.isVirtualKeyJustPressed('b')) {
+            if (ss.dialogueIndex > 0) {
+                ss.dialogueIndex--;
+                console.log('Back through intro dialogue');
+            } else {
+                this.state = CONSTANTS.STATES.TITLE;
+                console.log('→ TITLE (cancelled from intro)');
+            }
+        } else if (this.input.isKeyJustPressed('Enter') || this.input.isKeyJustPressed('z') || this.input.isVirtualKeyJustPressed('a')) {
             ss.advanceIntro();
         }
     } else if (ss.phase === 'selection') {
-        if (this.input.isKeyJustPressed('ArrowLeft') || this.input.isVirtualKeyJustPressed('left')) {
+        // Allow B to go back to intro dialogue
+        if (this.input.isKeyJustPressed('Backspace') || this.input.isKeyJustPressed('x') || this.input.isVirtualKeyJustPressed('b')) {
+            ss.phase = 'intro';
+            ss.dialogueIndex = Math.max(0, ss.dialogueIndex - 1);
+            console.log('Back to intro from selection');
+        } else if (this.input.isKeyJustPressed('ArrowLeft') || this.input.isVirtualKeyJustPressed('left')) {
             ss.moveSelection('left');
         } else if (this.input.isKeyJustPressed('ArrowRight') || this.input.isVirtualKeyJustPressed('right')) {
             ss.moveSelection('right');
@@ -284,7 +307,12 @@ Game.prototype.updateStarterSelection = function() {
             ss.confirmSelection();
         }
     } else if (ss.phase === 'post-selection') {
-        if (this.input.isKeyJustPressed('Enter') || this.input.isKeyJustPressed('z') || this.input.isVirtualKeyJustPressed('a')) {
+        // Allow B to go back during post-selection dialogue
+        if (this.input.isKeyJustPressed('Backspace') || this.input.isKeyJustPressed('x') || this.input.isVirtualKeyJustPressed('b')) {
+            ss.phase = 'selection';
+            ss.confirmed = false;
+            console.log('Cancelled from post-selection - back to selection');
+        } else if (this.input.isKeyJustPressed('Enter') || this.input.isKeyJustPressed('z') || this.input.isVirtualKeyJustPressed('a')) {
             const complete = ss.advancePostSelection();
             if (complete) {
                 this.state = CONSTANTS.STATES.OVERWORLD;
@@ -299,7 +327,8 @@ Game.prototype.updateOverworld = function(deltaTime) {
     if (!this.player.isMoving && this.input.isKeyJustPressed('Escape')) {
         this.state = CONSTANTS.STATES.MENU;
         this.menuSelection = 0;
-        this.bagMode = 'list';
+        this.bagMode = null;  // Don't auto-open BAG - require Enter
+        this.shopMode = null;  // Ensure shop is also closed
         console.log('→ MENU');
         return;
     }
@@ -1070,7 +1099,7 @@ Game.prototype.updateMenu = function() {
                 console.log('→ OVERWORLD');
             }, 1000);
         } else if (option === 'SAVE') {
-            this.saveGame();
+            this.save();
             console.log('Game saved!');
         } else if (option === 'CLOSE') {
             this.state = CONSTANTS.STATES.OVERWORLD;
