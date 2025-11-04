@@ -101,10 +101,11 @@ class Battle {
             const anim = this.animationQueue.shift();
             anim.callback();
             this.animationTimer = 0;
-        }
 
-        if (this.animationQueue.length === 0) {
-            this.checkBattleEnd();
+            // After executing the last animation, check if battle should end
+            if (this.animationQueue.length === 0) {
+                this.checkBattleEnd();
+            }
         }
     }
 

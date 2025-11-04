@@ -19,8 +19,8 @@ class InputHandler {
             }
             this.keys[e.key] = true;
 
-            // Prevent default for arrow keys and space
-            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+            // Prevent default for arrow keys, space, and Enter to avoid page scrolling/button activation
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'Enter'].includes(e.key)) {
                 e.preventDefault();
             }
         });

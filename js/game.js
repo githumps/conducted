@@ -16,6 +16,7 @@ function Game(canvas) {
     // Map system
     this.currentMap = null;
     this.maps = {}; // Will be populated from createStarterMap() and world-maps.js maps
+    this.tilesets = {}; // To store loaded tilesets
 
     // Scene controllers
     this.introScene = null;
@@ -55,16 +56,19 @@ function Game(canvas) {
         { name: 'boxcar', displayName: 'Boxcar', price: 200, description: 'Catches wild trains' }
     ];
 
-    // Initialize maps
-    this.initMaps();
+    // Initialize maps and assets
+    this.initAssets();
 
-    // Preload starter sprites
-    this.preloadStarterSprites();
 
     console.log('✅ Game initialized');
 }
 
-Game.prototype.initMaps = function() {
+Game.prototype.initAssets = async function() {
+    await this.initMaps();
+    this.preloadStarterSprites(); // This can run in parallel
+};
+
+Game.prototype.initMaps = async function() {
     // Create starter map (legacy from map.js)
     this.maps['pallet_town'] = createStarterMap();
 
@@ -73,16 +77,34 @@ Game.prototype.initMaps = function() {
         this.maps['PistonTown'] = WORLD_MAPS.PistonTown;
         this.maps['LabInterior'] = WORLD_MAPS.LabInterior;
         this.maps['Route1'] = WORLD_MAPS.Route1;
-        // Set current map to Piston Town
-        this.currentMap = this.maps['PistonTown'];
-    } else {
-        // Fallback to pallet_town
-        this.currentMap = this.maps['pallet_town'];
     }
 
     // Add gym map (from coal_harbor_gym.js)
     if (typeof createCoalHarborGym === 'function') {
         this.maps['coal_harbor_gym'] = createCoalHarborGym();
+    }
+
+    // Load all tilesets
+    for (const mapId in this.maps) {
+        const map = this.maps[mapId];
+        if (map.tileset) {
+            console.log(`Loading tileset for ${mapId}: ${map.tileset}`);
+            try {
+                const tileset = await loadTileset({ src: map.tileset });
+                this.tilesets[mapId] = tileset;
+                map.tilesetRef = tileset; // Add a direct reference to the map object
+                console.log(`✅ Tileset loaded for ${mapId}`);
+            } catch (error) {
+                console.error(`❌ Failed to load tileset for ${mapId}:`, error);
+            }
+        }
+    }
+
+    // Set current map after loading
+    if (this.maps['PistonTown']) {
+        this.currentMap = this.maps['PistonTown'];
+    } else {
+        this.currentMap = this.maps['pallet_town'];
     }
 };
 
@@ -151,6 +173,9 @@ Game.prototype.update = function(deltaTime) {
             break;
         case CONSTANTS.STATES.BATTLE:
             this.updateBattle(deltaTime);
+            break;
+        case CONSTANTS.STATES.BATTLE_SUMMARY:
+            this.updateBattleSummary();
             break;
         case CONSTANTS.STATES.MENU:
             this.updateMenu();
@@ -364,13 +389,11 @@ Game.prototype.updateOverworld = function(deltaTime) {
     if (justStopped) {
         this.checkWarpTransition();
 
-        // Check for wild encounters in tall grass
-        if (this.currentMap.getTile(this.player.x, this.player.y) === 2) {
-            if (this.currentMap.checkForEncounter && this.currentMap.checkForEncounter() && this.player.party.length > 0) {
-                if (this.currentMap.getRandomEncounter) {
-                    const wildTrain = this.currentMap.getRandomEncounter();
-                    this.startBattle(wildTrain, false);
-                }
+        // Check for wild encounters in grass (not on paths)
+        if (this.currentMap.checkForEncounter && this.currentMap.checkForEncounter(this.player.x, this.player.y) && this.player.party.length > 0) {
+            if (this.currentMap.getRandomEncounter) {
+                const wildTrain = this.currentMap.getRandomEncounter();
+                this.startBattle(wildTrain, false);
             }
         }
     }
@@ -569,12 +592,58 @@ Game.prototype.updateBattle = function(deltaTime) {
                 this.player.money += this.battle.moneyEarned;
                 console.log(`Earned $${this.battle.moneyEarned}! Total: $${this.player.money}`);
             }
+            this.state = CONSTANTS.STATES.BATTLE_SUMMARY;
+        } else {
+            this.battle = null;
+            this.state = CONSTANTS.STATES.OVERWORLD;
+            console.log('→ OVERWORLD');
         }
+    }
+};
 
+Game.prototype.updateBattleSummary = function() {
+    if (this.input.isKeyJustPressed('Enter') || this.input.isKeyJustPressed('z') || this.input.isVirtualKeyJustPressed('a')) {
         this.battle = null;
         this.state = CONSTANTS.STATES.OVERWORLD;
         console.log('→ OVERWORLD');
     }
+};
+
+
+Game.prototype.renderBattleSummary = function(ctx) {
+    if (!this.battle) return;
+
+    // Render the battle behind the summary
+    this.renderBattle(ctx);
+
+    // Draw a semi-transparent overlay
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+    // Draw the summary box
+    const boxX = this.canvas.width / 2 - 200;
+    const boxY = this.canvas.height / 2 - 100;
+    const boxWidth = 400;
+    const boxHeight = 200;
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+
+    // Summary text
+    ctx.fillStyle = '#000000';
+    ctx.font = 'bold 24px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('VICTORY!', this.canvas.width / 2, boxY + 50);
+
+    if (this.battle.moneyEarned) {
+        ctx.font = '20px monospace';
+        ctx.fillText(`You earned $${this.battle.moneyEarned}!`, this.canvas.width / 2, boxY + 100);
+    }
+
+    ctx.textAlign = 'left'; // Reset text align
 };
 
 Game.prototype.handleDefeat = function() {
@@ -624,6 +693,9 @@ Game.prototype.render = function() {
             break;
         case CONSTANTS.STATES.BATTLE:
             this.renderBattle(ctx);
+            break;
+        case CONSTANTS.STATES.BATTLE_SUMMARY:
+            this.renderBattleSummary(ctx);
             break;
         case CONSTANTS.STATES.MENU:
             this.renderMenu(ctx);
@@ -815,20 +887,38 @@ Game.prototype.renderOverworld = function(ctx) {
     const endTileY = Math.min(this.currentMap.height, Math.ceil((clampedCameraY + canvas.height) / tileSize));
 
     // Draw visible map tiles
-    for (let y = startTileY; y < endTileY; y++) {
-        for (let x = startTileX; x < endTileX; x++) {
-            const tile = this.currentMap.getTile(x, y);
-            const color = this.getTileColor(tile);
-            ctx.fillStyle = color;
-            ctx.fillRect(
-                (x * tileSize) - clampedCameraX,
-                (y * tileSize) - clampedCameraY,
-                tileSize,
-                tileSize
-            );
+    if (this.currentMap.tilesetRef) {
+        for (let y = startTileY; y < endTileY; y++) {
+            for (let x = startTileX; x < endTileX; x++) {
+                const tileIndex = this.currentMap.getTile(x, y);
+                const dx = (x * tileSize) - clampedCameraX;
+                const dy = (y * tileSize) - clampedCameraY;
+                drawTile(this.ctx, this.currentMap.tilesetRef, tileIndex, dx, dy);
+            }
         }
-    }
-
+    } else {
+                    // Fallback to colored rectangles if no tileset is loaded
+                for (let y = startTileY; y < endTileY; y++) {
+                    for (let x = startTileX; x < endTileX; x++) {
+                        const tile = this.currentMap.getTile(x, y);
+                        const color = this.getTileColor(tile);
+                        const screenX = (x * tileSize) - clampedCameraX;
+                        const screenY = (y * tileSize) - clampedCameraY;
+                        
+                        this.ctx.fillStyle = color;
+                        this.ctx.fillRect(
+                            screenX,
+                            screenY,
+                            tileSize,
+                            tileSize
+                        );
+        
+                        // Draw grid outline
+                        this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+                        this.ctx.strokeRect(screenX, screenY, tileSize, tileSize);
+                    }
+                }
+            }
     // Draw NPCs
     if (this.currentMap.npcs && this.currentMap.npcs.length > 0) {
         for (const npc of this.currentMap.npcs) {

@@ -39,6 +39,7 @@ const CONSTANTS = {
         STARTER_SELECTION: 'starter_selection',
         OVERWORLD: 'overworld',
         BATTLE: 'battle',
+        BATTLE_SUMMARY: 'battle_summary',
         MENU: 'menu',
         DIALOGUE: 'dialogue',
         TRANSITION: 'transition'
@@ -105,7 +106,8 @@ const CONSTANTS = {
         ANIMATION: 'animation',
         MESSAGE: 'message',
         VICTORY: 'victory',
-        DEFEAT: 'defeat'
+        DEFEAT: 'defeat',
+        BATTLE_SUMMARY: 'battle_summary'
     },
 
     // Player starting position
