@@ -72,17 +72,15 @@ Game.prototype.initMaps = async function() {
     // Create starter map (legacy from map.js)
     this.maps['pallet_town'] = createStarterMap();
 
-    // Add world maps if available
+    // Add world maps if available - iterate through ALL maps dynamically
     if (typeof WORLD_MAPS !== 'undefined') {
-        this.maps['PistonTown'] = WORLD_MAPS.PistonTown;
-        this.maps['LabInterior'] = WORLD_MAPS.LabInterior;
-        this.maps['Route1'] = WORLD_MAPS.Route1;
+        for (const mapId in WORLD_MAPS) {
+            this.maps[mapId] = WORLD_MAPS[mapId];
+        }
     }
 
-    // Add gym map (from coal_harbor_gym.js)
-    if (typeof createCoalHarborGym === 'function') {
-        this.maps['coal_harbor_gym'] = createCoalHarborGym();
-    }
+    // Legacy: Coal Harbor Gym now loaded from WORLD_MAPS above
+    // (coal_harbor_gym.js is deprecated - gym integrated into world-maps.js)
 
     // Load all tilesets
     for (const mapId in this.maps) {
