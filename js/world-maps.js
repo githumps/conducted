@@ -130,6 +130,79 @@ const WORLD_MAPS = {
     }
   },
 
+  CoalHarbor: {
+    id: 'CoalHarbor',
+    name: 'Coal Harbor',
+    tileset: 'assets/tiles/piston-town.png',
+    width: 20, height: 15,
+    tiles: [
+      // Row 0 - Entry from Route 1 (north, columns 8-11)
+      [2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2],
+      // Row 1 - Path expands, houses on west
+      [2, 2, 5, 5, 2, 2, 2, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2],
+      // Row 2 - House with door, path continues
+      [2, 2, 5, 5, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2],
+      // Row 3 - House door, grass, Depot (top-right)
+      [2, 2, 12, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 5, 5, 5, 2, 2],
+      // Row 4 - Main horizontal path, Depot middle
+      [2, 1, 1, 3, 1, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 5, 0, 5, 2, 2],
+      // Row 5 - Another house (west), Depot door
+      [2, 1, 5, 5, 1, 1, 3, 1, 1, 1, 1, 1, 1, 1, 1, 5, 12, 5, 2, 2],
+      // Row 6 - House door, central path continues
+      [2, 1, 5, 5, 1, 1, 3, 3, 1, 1, 1, 1, 1, 3, 3, 3, 3, 3, 2, 2],
+      // Row 7 - House door at 2,7, town center intersection
+      [2, 1, 12, 3, 1, 1, 1, 3, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 2, 2],
+      // Row 8 - Path continues, Mart (top-right)
+      [2, 1, 3, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 3, 1, 5, 5, 1, 2, 2],
+      // Row 9 - Mart with door
+      [2, 1, 3, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 3, 1, 5, 5, 1, 2, 2],
+      // Row 10 - Path to gym
+      [2, 1, 3, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 3, 1, 12, 3, 1, 2, 2],
+      // Row 11 - Gym entrance (top), south path
+      [2, 1, 3, 3, 1, 1, 5, 5, 5, 5, 5, 1, 1, 1, 1, 1, 3, 1, 2, 2],
+      // Row 12 - Gym middle with door at center
+      [2, 1, 1, 3, 1, 1, 5, 0, 0, 12, 5, 1, 1, 1, 1, 1, 3, 1, 2, 2],
+      // Row 13 - Gym bottom
+      [2, 1, 1, 3, 3, 1, 5, 5, 5, 5, 5, 1, 1, 3, 3, 3, 3, 1, 2, 2],
+      // Row 14 - Bottom border with grass
+      [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+    ],
+    warps: [
+      // House doors (west side)
+      { from: rect(2, 3), to: { mapId: 'PlayerHouse', ...pos(3, 6, 'down') } },
+      { from: rect(2, 7), to: { mapId: 'PlayerHouse', ...pos(3, 6, 'down') } },
+      // Depot door (east)
+      { from: rect(16, 5), to: { mapId: 'HealingDepot', ...pos(3, 6, 'down') } },
+      // Mart door (southeast)
+      { from: rect(15, 10), to: { mapId: 'TrainMart', ...pos(3, 6, 'down') } },
+      // Gym door (south center)
+      { from: rect(9, 12), to: { mapId: 'CoalHarborGym', ...pos(7, 13, 'up') } },
+      // Route 1 entrance (north)
+      { from: rect(8, 0), to: { mapId: 'Route1', ...pos(8, 14, 'up') } },
+      { from: rect(9, 0), to: { mapId: 'Route1', ...pos(9, 14, 'up') } },
+      { from: rect(10, 0), to: { mapId: 'Route1', ...pos(10, 14, 'up') } },
+      { from: rect(11, 0), to: { mapId: 'Route1', ...pos(11, 14, 'up') } },
+    ],
+    connections: {
+      north: { mapId: 'Route1', offsetX: 0, offsetY: 0 }
+    },
+    npcs: [],
+    getTile: function(x, y) {
+      if (x < 0 || x >= this.width || y < 0 || y >= this.height) return 0;
+      return this.tiles[y][x];
+    },
+    isWalkable: function(x, y) {
+      const tile = this.getTile(x, y);
+      const npcAtPosition = this.npcs.find(npc => npc.x === x && npc.y === y);
+      if (npcAtPosition) return false;
+      const walkableTiles = [1, 2, 3, 12];
+      return walkableTiles.includes(tile);
+    },
+    checkForEncounter: function() {
+      return false; // No encounters in town
+    }
+  },
+
   Route1: {
     id: 'Route1',
     name: 'Route 1',
@@ -170,6 +243,8 @@ const WORLD_MAPS = {
     warps: [
       // back to town top edge (SEAMLESS transition)
       { from: rect(10, 0), to: { mapId: 'PistonTown', ...pos(10, 14, 'up') } },
+      // south exit to Coal Harbor (columns 8-10, row 14)
+      { from: rect(8, 14, 3, 1), to: { mapId: 'CoalHarbor', ...pos(9, 0, 'down') } },
     ],
     connections: {
       north: { mapId: 'PistonTown', offsetX: 0, offsetY: 0 } // Connect top edge to PistonTown bottom
@@ -220,6 +295,90 @@ const WORLD_MAPS = {
       const speciesId = Utils.randomInt(1, 20); // Early game trains (IDs 1-20)
       console.log(`Wild encounter: Train #${speciesId} (Lv.${level})`);
       return new Train(speciesId, level);
+    }
+  },
+
+  CoalHarborGym: {
+    id: 'CoalHarborGym',
+    name: 'Coal Harbor Gym',
+    tileset: 'assets/tiles/piston-town.png',
+    width: 15, height: 15,
+    tiles: [
+      // Row 0 - Top wall
+      [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
+      // Row 1 - Interior with path
+      [5, 1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 5],
+      // Row 2 - Gym Leader Marina position (center)
+      [5, 1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 5],
+      // Row 3
+      [5, 1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 5],
+      // Row 4
+      [5, 1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 5],
+      // Row 5 - Water strip
+      [5, 4, 4, 4, 4, 4, 4, 3, 4, 4, 4, 4, 4, 4, 5],
+      // Row 6
+      [5, 1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 5],
+      // Row 7
+      [5, 1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 5],
+      // Row 8
+      [5, 1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 5],
+      // Row 9
+      [5, 1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 5],
+      // Row 10
+      [5, 1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 5],
+      // Row 11
+      [5, 1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 5],
+      // Row 12
+      [5, 1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 5],
+      // Row 13
+      [5, 1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 5],
+      // Row 14 - Bottom wall with door at center
+      [5, 5, 5, 5, 5, 5, 5, 12, 5, 5, 5, 5, 5, 5, 5],
+    ],
+    warps: [
+      // Door back to Coal Harbor
+      { from: rect(7, 14), to: { mapId: 'CoalHarbor', ...pos(9, 12, 'down') } },
+    ],
+    npcs: [
+      {
+        id: 'gym_leader_marina',
+        name: 'Captain Marina',
+        x: 7,
+        y: 2,
+        type: 'gym_leader',
+        color: '#3498DB',
+        badgeColor: '#1ABC9C',
+        canBattle: true,
+        defeated: false,
+        badge: 'Harbor Badge',
+        party: [
+          { speciesId: 7, level: 12 },
+          { speciesId: 8, level: 14 },
+          { speciesId: 9, level: 16 }
+        ],
+        dialogue: [
+          { speaker: 'Captain Marina', text: 'Ahoy! Welcome to the Coal Harbor Gym!' },
+          { speaker: 'Captain Marina', text: 'My freight trains are the toughest in the region! Let\'s see if you can handle them!' }
+        ],
+        defeatDialogue: [
+          { speaker: 'Captain Marina', text: 'Well, blow me down! You\'re a natural!' },
+          { speaker: 'Captain Marina', text: 'You\'ve earned the Harbor Badge!' }
+        ]
+      }
+    ],
+    getTile: function(x, y) {
+      if (x < 0 || x >= this.width || y < 0 || y >= this.height) return 0;
+      return this.tiles[y][x];
+    },
+    isWalkable: function(x, y) {
+      const tile = this.getTile(x, y);
+      const npcAtPosition = this.npcs.find(npc => npc.x === x && npc.y === y);
+      if (npcAtPosition) return false;
+      const walkableTiles = [1, 3, 12]; // Floor, path, and door
+      return walkableTiles.includes(tile);
+    },
+    checkForEncounter: function() {
+      return false; // No encounters in gym
     }
   },
 };
