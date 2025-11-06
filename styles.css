@@ -6,8 +6,9 @@
 
 body {
     font-family: 'Press Start 2P', 'Courier New', monospace;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: #fff;
+    /* GBC-inspired cream/tan background (like Pokemon Red/Blue menus) */
+    background: #F8F8F0;
+    color: #181818;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -16,10 +17,12 @@ body {
 }
 
 #game-container {
-    background: #2d2d2d;
-    border-radius: 20px;
+    /* Slightly darker cream with subtle border */
+    background: #E8E8D8;
+    border-radius: 15px;
     padding: 30px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 8px 20px rgba(24, 24, 24, 0.3);
+    border: 3px solid #181818;
     max-width: 1100px;
 }
 
@@ -27,19 +30,20 @@ body {
     text-align: center;
     margin-bottom: 20px;
     padding-bottom: 20px;
-    border-bottom: 3px solid #667eea;
+    border-bottom: 3px solid #181818;
 }
 
 #game-header h1 {
     font-size: 28px;
-    color: #ffd700;
-    text-shadow: 3px 3px 0 #ff6b6b;
+    /* Pokemon-style gold/yellow text */
+    color: #F8C838;
+    text-shadow: 3px 3px 0 #F83048;
     margin-bottom: 10px;
 }
 
 #game-header p {
     font-size: 12px;
-    color: #a0a0a0;
+    color: #485048;
 }
 
 #gameCanvas {
@@ -56,13 +60,13 @@ body {
 #controls-info {
     margin-top: 20px;
     padding: 20px;
-    background: #1a1a1a;
+    background: #F8F8F0;
     border-radius: 10px;
-    border: 2px solid #667eea;
+    border: 3px solid #181818;
 }
 
 #controls-info h3 {
-    color: #ffd700;
+    color: #F8C838;
     margin-bottom: 15px;
     font-size: 16px;
 }
@@ -70,31 +74,31 @@ body {
 #controls-info p {
     font-size: 11px;
     line-height: 1.8;
-    color: #e0e0e0;
+    color: #181818;
 }
 
 #controls-info strong {
-    color: #667eea;
+    color: #5878A8;
 }
 
 #game-info {
     margin-top: 20px;
     padding: 20px;
-    background: #1a1a1a;
+    background: #F8F8F0;
     border-radius: 10px;
-    border: 2px solid #764ba2;
+    border: 3px solid #181818;
     text-align: center;
 }
 
 #game-info p {
     font-size: 11px;
     line-height: 1.8;
-    color: #e0e0e0;
+    color: #181818;
     margin: 10px 0;
 }
 
 #game-info strong {
-    color: #ffd700;
+    color: #F8C838;
 }
 
 /* Loading animation */
@@ -115,9 +119,9 @@ body {
     gap: 15px;
     margin-top: 20px;
     padding: 15px;
-    background: #1a1a1a;
+    background: #F8F8F0;
     border-radius: 10px;
-    border: 2px solid #667eea;
+    border: 3px solid #181818;
 }
 
 .save-load-btn {
@@ -125,29 +129,29 @@ body {
     font-size: 16px;
     font-weight: bold;
     padding: 12px 24px;
-    border: 3px solid #667eea;
+    border: 3px solid #181818;
     border-radius: 8px;
-    background: #667eea;
-    color: #fff;
+    background: #5878A8;
+    color: #F8F8F0;
     cursor: pointer;
     transition: all 0.2s;
-    box-shadow: 0 4px 0 #4a5fbb;
+    box-shadow: 0 4px 0 #181818;
 }
 
 .save-load-btn:hover {
-    background: #7a8ff0;
+    background: #6888B8;
     transform: translateY(-2px);
-    box-shadow: 0 6px 0 #4a5fbb;
+    box-shadow: 0 6px 0 #181818;
 }
 
 .save-load-btn:active {
     transform: translateY(2px);
-    box-shadow: 0 2px 0 #4a5fbb;
+    box-shadow: 0 2px 0 #181818;
 }
 
 #save-status {
     font-size: 12px;
-    color: #ffd700;
+    color: #F8C838;
     font-weight: bold;
     min-width: 150px;
     text-align: center;
@@ -172,24 +176,24 @@ body {
 }
 
 .modal-content {
-    background: #2d2d2d;
-    border: 4px solid #667eea;
+    background: #F8F8F0;
+    border: 4px solid #181818;
     border-radius: 15px;
     padding: 30px;
     max-width: 600px;
     width: 90%;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+    box-shadow: 0 20px 60px rgba(24, 24, 24, 0.8);
 }
 
 .modal-content h2 {
-    color: #ffd700;
+    color: #F8C838;
     font-size: 20px;
     margin-bottom: 15px;
     text-align: center;
 }
 
 .modal-content p {
-    color: #e0e0e0;
+    color: #181818;
     font-size: 12px;
     margin-bottom: 15px;
     text-align: center;
@@ -202,9 +206,9 @@ body {
     padding: 15px;
     font-family: 'Courier New', monospace;
     font-size: 11px;
-    background: #1a1a1a;
-    color: #fff;
-    border: 2px solid #667eea;
+    background: #E8E8D8;
+    color: #181818;
+    border: 2px solid #181818;
     border-radius: 8px;
     margin-bottom: 15px;
     resize: vertical;
@@ -216,17 +220,17 @@ body {
     font-size: 14px;
     font-weight: bold;
     padding: 10px 20px;
-    border: 3px solid #667eea;
+    border: 3px solid #181818;
     border-radius: 8px;
-    background: #667eea;
-    color: #fff;
+    background: #5878A8;
+    color: #F8F8F0;
     cursor: pointer;
     margin: 5px;
     transition: all 0.2s;
 }
 
 .modal-btn:hover {
-    background: #7a8ff0;
+    background: #6888B8;
     transform: translateY(-2px);
 }
 
@@ -241,9 +245,9 @@ body {
     align-items: center;
     margin-top: 20px;
     padding: 20px;
-    background: #1a1a1a;
+    background: #F8F8F0;
     border-radius: 10px;
-    border: 2px solid #667eea;
+    border: 3px solid #181818;
     gap: 40px;
 }
 
@@ -258,14 +262,14 @@ body {
 .dpad-btn {
     width: 70px;
     height: 70px;
-    border: 3px solid #667eea;
+    border: 3px solid #181818;
     border-radius: 10px;
-    background: #2d2d2d;
-    color: #fff;
+    background: #C8C8A0;
+    color: #181818;
     font-size: 28px;
     cursor: pointer;
     transition: all 0.1s;
-    box-shadow: 0 4px 0 #1a1a1a;
+    box-shadow: 0 4px 0 #485048;
     user-select: none;
     -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;
@@ -273,9 +277,10 @@ body {
 
 .dpad-btn:active,
 .dpad-btn.active {
-    background: #667eea;
+    background: #5878A8;
+    color: #F8F8F0;
     transform: translateY(4px);
-    box-shadow: 0 0 0 #1a1a1a;
+    box-shadow: 0 0 0 #485048;
 }
 
 #btn-up { grid-column: 2; grid-row: 1; }
@@ -293,15 +298,15 @@ body {
 .action-btn {
     width: 80px;
     height: 80px;
-    border: 4px solid #ff6b6b;
+    border: 4px solid #181818;
     border-radius: 50%;
-    background: #2d2d2d;
-    color: #fff;
+    background: #C8C8A0;
+    color: #181818;
     font-size: 24px;
     font-weight: bold;
     cursor: pointer;
     transition: all 0.1s;
-    box-shadow: 0 6px 0 #1a1a1a;
+    box-shadow: 0 6px 0 #485048;
     user-select: none;
     -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;
@@ -309,28 +314,30 @@ body {
 
 .action-btn:active,
 .action-btn.active {
-    background: #ff6b6b;
+    background: #F83048;
+    color: #F8F8F0;
     transform: translateY(6px);
-    box-shadow: 0 0 0 #1a1a1a;
+    box-shadow: 0 0 0 #485048;
 }
 
 #btn-a {
-    border-color: #ff6b6b;
+    border-color: #181818;
 }
 
 #btn-a:active,
 #btn-a.active {
-    background: #ff6b6b;
+    background: #F83048;
+    color: #F8F8F0;
 }
 
 #btn-b {
-    border-color: #f0c010;
+    border-color: #181818;
 }
 
 #btn-b:active,
 #btn-b.active {
-    background: #f0c010;
-    color: #000;
+    background: #F8C838;
+    color: #181818;
 }
 
 .mobile-only {
