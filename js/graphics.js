@@ -34,12 +34,14 @@ async function loadTileset({ src, tileSize = TILE_SIZE, atlasJson = null }) {
 }
 
 // Draw a single tileIndex from tileset to (dx, dy) in pixels
-function drawTile(ctx, tileset, tileIndex, dx, dy) {
+// scaledSize: destination tile size in pixels (default: tileSize from tileset)
+function drawTile(ctx, tileset, tileIndex, dx, dy, scaledSize) {
   if (tileIndex < 0) return; // -1 = empty/no-op
   const { image, tileSize, cols } = tileset;
   const sx = (tileIndex % cols) * tileSize;
   const sy = Math.floor(tileIndex / cols) * tileSize;
-  ctx.drawImage(image, sx, sy, tileSize, tileSize, dx, dy, tileSize, tileSize);
+  const destSize = scaledSize !== undefined ? scaledSize : tileSize;
+  ctx.drawImage(image, sx, sy, tileSize, tileSize, dx, dy, destSize, destSize);
 }
 
 // Draw a whole map layer of tile indices (2D array: [y][x])

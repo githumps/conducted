@@ -891,7 +891,7 @@ Game.prototype.renderOverworld = function(ctx) {
                 const tileIndex = this.currentMap.getTile(x, y);
                 const dx = (x * tileSize) - clampedCameraX;
                 const dy = (y * tileSize) - clampedCameraY;
-                drawTile(this.ctx, this.currentMap.tilesetRef, tileIndex, dx, dy);
+                drawTile(this.ctx, this.currentMap.tilesetRef, tileIndex, dx, dy, tileSize);
             }
         }
     } else {
