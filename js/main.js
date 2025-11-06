@@ -29,52 +29,57 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('✓ Canvas found');
         updateLoadStatus('Canvas found...', '#ffaa00');
 
-        // Create game instance
+        // Create game instance and wait for assets to load
         console.log('Creating game instance...');
         updateLoadStatus('Creating game...', '#ffaa00');
         const game = new Game(canvas);
         window.DEBUG_GAME = game; // Expose for debugging/testing
         console.log('✓ Game instance created');
-        updateLoadStatus('Game created...', '#ffaa00');
+        updateLoadStatus('Loading assets...', '#ffaa00');
 
-        // Initialize mobile controls
-        console.log('Initializing mobile controls...');
-        updateLoadStatus('Setting up controls...', '#ffaa00');
-        const mobileControls = new MobileControls(game.input);
-        console.log('✓ Mobile controls initialized');
+        // Wait for assets to load before starting game loop
+        game.initAssets().then(() => {
+            console.log('✅ All assets loaded');
+            updateLoadStatus('Assets loaded...', '#ffaa00');
 
-        // Setup save/load buttons
-        console.log('Setting up save/load buttons...');
-        setupSaveLoadButtons(game);
-        console.log('✓ Save/load buttons setup');
+            // Initialize mobile controls
+            console.log('Initializing mobile controls...');
+            updateLoadStatus('Setting up controls...', '#ffaa00');
+            const mobileControls = new MobileControls(game.input);
+            console.log('✓ Mobile controls initialized');
 
-        // Game loop
-        let lastTime = 0;
+            // Setup save/load buttons
+            console.log('Setting up save/load buttons...');
+            setupSaveLoadButtons(game);
+            console.log('✓ Save/load buttons setup');
 
-        function gameLoop(timestamp) {
-            try {
-                const deltaTime = (timestamp - lastTime) / 1000;
-                lastTime = timestamp;
+            // Game loop
+            let lastTime = 0;
 
-                // Update
-                game.update(deltaTime);
+            function gameLoop(timestamp) {
+                try {
+                    const deltaTime = (timestamp - lastTime) / 1000;
+                    lastTime = timestamp;
 
-                // Render
-                game.render();
+                    // Update
+                    game.update(deltaTime);
 
-                // Continue loop
-                requestAnimationFrame(gameLoop);
-            } catch (error) {
-                console.error('❌ Error in game loop:', error);
-                updateLoadStatus(`ERROR: ${error.message}`, '#ff0000');
+                    // Render
+                    game.render();
+
+                    // Continue loop
+                    requestAnimationFrame(gameLoop);
+                } catch (error) {
+                    console.error('❌ Error in game loop:', error);
+                    updateLoadStatus(`ERROR: ${error.message}`, '#ff0000');
+                }
             }
-        }
 
-        // Start game loop
-        console.log('🎮 Game loop starting!');
-        updateLoadStatus('Starting game loop...', '#ffaa00');
-        requestAnimationFrame(gameLoop);
-        console.log('✓ Game loop started');
+            // Start game loop AFTER assets are loaded
+            console.log('🎮 Game loop starting!');
+            updateLoadStatus('Starting game loop...', '#ffaa00');
+            requestAnimationFrame(gameLoop);
+            console.log('✓ Game loop started');
 
         // Auto-save every 30 seconds
         setInterval(() => {
@@ -101,6 +106,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Update load status indicator - SUCCESS!
         updateLoadStatus(`Ready! State: ${game.state}`, '#10b010');
+
+    });
 
     } catch (error) {
         console.error('❌ FATAL ERROR during initialization:', error);
