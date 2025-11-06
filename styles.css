@@ -4,8 +4,16 @@
     box-sizing: border-box;
 }
 
+/* Pokemon Red/Blue/Gold/Silver/Crystal Authentic Font */
+@font-face {
+    font-family: 'PKMN RBYGSC';
+    src: url('assets/fonts/PKMN RBYGSC.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
 body {
-    font-family: 'Press Start 2P', 'Courier New', monospace;
+    font-family: 'PKMN RBYGSC', 'Press Start 2P', 'Courier New', monospace;
     /* GBC-inspired cream/tan background (like Pokemon Red/Blue menus) */
     background: #F8F8F0;
     color: #181818;
@@ -125,7 +133,7 @@ body {
 }
 
 .save-load-btn {
-    font-family: 'Courier New', monospace;
+    font-family: 'PKMN RBYGSC', 'Press Start 2P', 'Courier New', monospace;
     font-size: 16px;
     font-weight: bold;
     padding: 12px 24px;
@@ -204,7 +212,7 @@ body {
     width: 100%;
     min-height: 150px;
     padding: 15px;
-    font-family: 'Courier New', monospace;
+    font-family: 'PKMN RBYGSC', 'Press Start 2P', 'Courier New', monospace;
     font-size: 11px;
     background: #E8E8D8;
     color: #181818;
@@ -216,7 +224,7 @@ body {
 }
 
 .modal-btn {
-    font-family: 'Courier New', monospace;
+    font-family: 'PKMN RBYGSC', 'Press Start 2P', 'Courier New', monospace;
     font-size: 14px;
     font-weight: bold;
     padding: 10px 20px;

@@ -14,7 +14,7 @@ const CONSTANTS = {
 
     // Game info
     GAME_TITLE: "Train Battle RPG",
-    VERSION: "1.0.9",
+    VERSION: "1.0.15",
 
     // Colors (Authentic Game Boy Color palette - Pokemon Red/Blue style)
     // Based on GBC 15-bit RGB palette used in Pokemon games
