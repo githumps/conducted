@@ -507,147 +507,194 @@ class Battle {
     render(ctx) {
         const canvas = ctx.canvas;
 
-        // Background gradient (grass/route default)
-        const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-        gradient.addColorStop(0, '#90EE90'); // Light green (sky)
-        gradient.addColorStop(0.6, '#228B22'); // Forest green (ground)
-        ctx.fillStyle = gradient;
+        // Pokemon-style solid cream background
+        ctx.fillStyle = CONSTANTS.COLORS.UI_BG;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // Ground line (horizon)
-        const horizonY = canvas.height * 0.6;
-        ctx.strokeStyle = '#1a6b1a';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(0, horizonY);
-        ctx.lineTo(canvas.width, horizonY);
-        ctx.stroke();
 
         // Calculate animation offsets
         const enemyShakeX = this.enemyShake > 0 ? Math.sin(Date.now() * 0.05) * this.enemyShake * 2 : 0;
         const playerShakeX = this.playerShake > 0 ? Math.sin(Date.now() * 0.05) * this.playerShake * 2 : 0;
 
-        // Enemy train sprite (front-facing, top area)
+        // Pokemon-style sprite positioning
+        // Enemy train sprite (upper right, front-facing)
         if (this.enemyActive) {
             // Flash effect when taking damage
             if (this.enemyFlash > 0) {
                 ctx.globalAlpha = 0.5 + (this.enemyFlash * 0.5);
-                ctx.fillStyle = '#FF0000';
-                ctx.fillRect(420 + enemyShakeX - 10, 120 - 10, 100, 100);
+                ctx.fillStyle = CONSTANTS.COLORS.HP_RED;
+                ctx.fillRect(500 + enemyShakeX - 10, 140 - 10, 100, 100);
                 ctx.globalAlpha = 1.0;
             }
-            this.drawEnemyTrain(ctx, 420 + enemyShakeX, 120);
+            this.drawEnemyTrain(ctx, 500 + enemyShakeX, 140);
         }
 
-        // Player train sprite (back-facing, bottom area)
+        // Player train sprite (lower left, back-facing)
         if (this.playerActive) {
             // Flash effect when taking damage
             if (this.playerFlash > 0) {
                 ctx.globalAlpha = 0.5 + (this.playerFlash * 0.5);
-                ctx.fillStyle = '#FF0000';
-                ctx.fillRect(150 + playerShakeX - 10, 300 - 10, 100, 100);
+                ctx.fillStyle = CONSTANTS.COLORS.HP_RED;
+                ctx.fillRect(120 + playerShakeX - 10, 320 - 10, 100, 100);
                 ctx.globalAlpha = 1.0;
             }
-            this.drawPlayerTrain(ctx, 150 + playerShakeX, 300);
+            this.drawPlayerTrain(ctx, 120 + playerShakeX, 320);
         }
 
-        // Enemy train info (top)
+        // Pokemon-style enemy info panel (top-left)
         if (this.enemyActive) {
-            ctx.fillStyle = '#000000';
-            ctx.font = 'bold 20px monospace';
-            ctx.fillText(this.enemyActive.nickname || this.enemyActive.species.name, 50, 50);
-            ctx.font = '16px monospace';
-            ctx.fillText(`Lv${this.enemyActive.level}`, 50, 75);
+            // Panel background
+            ctx.fillStyle = CONSTANTS.COLORS.WHITE;
+            ctx.fillRect(40, 30, 320, 80);
+            ctx.strokeStyle = CONSTANTS.COLORS.BLACK;
+            ctx.lineWidth = 3;
+            ctx.strokeRect(40, 30, 320, 80);
 
-            // Enemy HP bar
+            // Name and level
+            ctx.fillStyle = CONSTANTS.COLORS.BLACK;
+            ctx.font = '20px monospace';
+            ctx.fillText(this.enemyActive.nickname || this.enemyActive.species.name, 55, 58);
+            ctx.font = '16px monospace';
+            ctx.fillText(`Lv${this.enemyActive.level}`, 290, 58);
+
+            // HP label
+            ctx.font = '14px monospace';
+            ctx.fillText('HP:', 55, 85);
+
+            // Enemy HP bar (Pokemon Gen 1 style - no numbers shown)
             const enemyHPPercent = this.enemyActive.currentHP / this.enemyActive.maxHP;
-            ctx.fillStyle = '#CCCCCC';
-            ctx.fillRect(50, 90, 200, 20);
-            ctx.fillStyle = enemyHPPercent > 0.5 ? '#00FF00' : enemyHPPercent > 0.2 ? '#FFFF00' : '#FF0000';
-            ctx.fillRect(50, 90, 200 * enemyHPPercent, 20);
-            ctx.strokeStyle = '#000000';
-            ctx.strokeRect(50, 90, 200, 20);
+            ctx.fillStyle = CONSTANTS.COLORS.HP_BG;
+            ctx.fillRect(95, 73, 240, 16);
+
+            // HP bar fill with authentic Pokemon colors
+            if (enemyHPPercent > 0.5) {
+                ctx.fillStyle = CONSTANTS.COLORS.HP_GREEN;
+            } else if (enemyHPPercent > 0.2) {
+                ctx.fillStyle = CONSTANTS.COLORS.HP_YELLOW;
+            } else {
+                ctx.fillStyle = CONSTANTS.COLORS.HP_RED;
+            }
+            ctx.fillRect(95, 73, 240 * enemyHPPercent, 16);
+            ctx.strokeStyle = CONSTANTS.COLORS.BLACK;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(95, 73, 240, 16);
         }
 
-        // Player train info (bottom)
+        // Pokemon-style player info panel (bottom-right)
         if (this.playerActive) {
-            ctx.fillStyle = '#000000';
-            ctx.font = 'bold 20px monospace';
-            ctx.fillText(this.playerActive.nickname || this.playerActive.species.name, 450, 400);
+            // Panel background
+            ctx.fillStyle = CONSTANTS.COLORS.WHITE;
+            ctx.fillRect(408, 450, 340, 100);
+            ctx.strokeStyle = CONSTANTS.COLORS.BLACK;
+            ctx.lineWidth = 3;
+            ctx.strokeRect(408, 450, 340, 100);
+
+            // Name and level
+            ctx.fillStyle = CONSTANTS.COLORS.BLACK;
+            ctx.font = '20px monospace';
+            ctx.fillText(this.playerActive.nickname || this.playerActive.species.name, 425, 478);
             ctx.font = '16px monospace';
-            ctx.fillText(`Lv${this.playerActive.level}`, 450, 425);
+            ctx.fillText(`Lv${this.playerActive.level}`, 680, 478);
+
+            // HP label
+            ctx.font = '14px monospace';
+            ctx.fillText('HP:', 425, 508);
 
             // Player HP bar
             const playerHPPercent = this.playerActive.currentHP / this.playerActive.maxHP;
-            ctx.fillStyle = '#CCCCCC';
-            ctx.fillRect(450, 440, 200, 20);
-            ctx.fillStyle = playerHPPercent > 0.5 ? '#00FF00' : playerHPPercent > 0.2 ? '#FFFF00' : '#FF0000';
-            ctx.fillRect(450, 440, 200 * playerHPPercent, 20);
-            ctx.strokeStyle = '#000000';
-            ctx.strokeRect(450, 440, 200, 20);
+            ctx.fillStyle = CONSTANTS.COLORS.HP_BG;
+            ctx.fillRect(465, 496, 260, 16);
 
-            // HP numbers
-            ctx.fillStyle = '#000000';
+            // HP bar fill with authentic Pokemon colors
+            if (playerHPPercent > 0.5) {
+                ctx.fillStyle = CONSTANTS.COLORS.HP_GREEN;
+            } else if (playerHPPercent > 0.2) {
+                ctx.fillStyle = CONSTANTS.COLORS.HP_YELLOW;
+            } else {
+                ctx.fillStyle = CONSTANTS.COLORS.HP_RED;
+            }
+            ctx.fillRect(465, 496, 260 * playerHPPercent, 16);
+            ctx.strokeStyle = CONSTANTS.COLORS.BLACK;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(465, 496, 260, 16);
+
+            // HP numbers (shown for player's Pokemon in Gen 1)
+            ctx.fillStyle = CONSTANTS.COLORS.BLACK;
             ctx.font = '14px monospace';
-            ctx.fillText(`${this.playerActive.currentHP}/${this.playerActive.maxHP}`, 455, 456);
+            ctx.textAlign = 'right';
+            ctx.fillText(`${this.playerActive.currentHP}/ ${this.playerActive.maxHP}`, 720, 532);
+            ctx.textAlign = 'left'; // Reset alignment
         }
 
-        // Message box (bottom)
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(20, 500, canvas.width - 40, 140);
-        ctx.strokeStyle = '#000000';
+        // Pokemon-style message box (bottom, full width)
+        ctx.fillStyle = CONSTANTS.COLORS.WHITE;
+        ctx.fillRect(20, 560, canvas.width - 40, 90);
+        ctx.strokeStyle = CONSTANTS.COLORS.BLACK;
         ctx.lineWidth = 3;
-        ctx.strokeRect(20, 500, canvas.width - 40, 140);
+        ctx.strokeRect(20, 560, canvas.width - 40, 90);
 
-        // Display current message
-        ctx.fillStyle = '#000000';
+        // Display current message with Pokemon font
+        ctx.fillStyle = CONSTANTS.COLORS.BLACK;
         ctx.font = '18px monospace';
         if (this.messages.length > 0 && this.currentMessage < this.messages.length) {
             const message = this.messages[this.currentMessage];
-            this.wrapText(ctx, message, 40, 530, canvas.width - 80, 25);
+            this.wrapText(ctx, message, 40, 590, canvas.width - 80, 24);
         }
 
-        // Battle menu
+        // Pokemon-style 2x2 battle menu (overlays right side of message box)
         if (this.state === CONSTANTS.BATTLE_STATES.MENU) {
             const menuOptions = ['FIGHT', 'TRAIN', 'ITEM', 'RUN'];
-            const menuX = 450;
-            const menuY = 500;
+            const menuX = 420;
+            const menuY = 565;
+            const buttonWidth = 155;
+            const buttonHeight = 38;
 
             menuOptions.forEach((option, index) => {
-                const x = menuX + (index % 2) * 140;
-                const y = menuY + Math.floor(index / 2) * 40;
+                const x = menuX + (index % 2) * (buttonWidth + 5);
+                const y = menuY + Math.floor(index / 2) * (buttonHeight + 4);
 
-                ctx.fillStyle = index === this.menuSelection ? '#FFD700' : '#FFFFFF';
-                ctx.fillRect(x, y, 130, 35);
-                ctx.strokeStyle = '#000000';
-                ctx.strokeRect(x, y, 130, 35);
+                // Pokemon-style button styling
+                ctx.fillStyle = index === this.menuSelection ? CONSTANTS.COLORS.UI_HIGHLIGHT : CONSTANTS.COLORS.WHITE;
+                ctx.fillRect(x, y, buttonWidth, buttonHeight);
+                ctx.strokeStyle = CONSTANTS.COLORS.BLACK;
+                ctx.lineWidth = 3;
+                ctx.strokeRect(x, y, buttonWidth, buttonHeight);
 
-                ctx.fillStyle = '#000000';
+                // Button text
+                ctx.fillStyle = index === this.menuSelection ? CONSTANTS.COLORS.WHITE : CONSTANTS.COLORS.BLACK;
                 ctx.font = 'bold 16px monospace';
-                ctx.fillText(option, x + 10, y + 23);
+                ctx.textAlign = 'center';
+                ctx.fillText(option, x + buttonWidth / 2, y + buttonHeight / 2 + 6);
+                ctx.textAlign = 'left'; // Reset alignment
             });
         }
 
-        // Move selection menu
+        // Pokemon-style move selection menu (2x2 grid)
         if (this.state === CONSTANTS.BATTLE_STATES.FIGHT) {
             const moves = this.playerActive.moves;
-            const menuX = 450;
-            const menuY = 500;
+            const menuX = 420;
+            const menuY = 565;
+            const buttonWidth = 155;
+            const buttonHeight = 38;
 
             moves.forEach((move, index) => {
                 if (move) {
-                    const x = menuX + (index % 2) * 140;
-                    const y = menuY + Math.floor(index / 2) * 40;
+                    const x = menuX + (index % 2) * (buttonWidth + 5);
+                    const y = menuY + Math.floor(index / 2) * (buttonHeight + 4);
 
-                    ctx.fillStyle = index === this.moveSelection ? '#FFD700' : '#FFFFFF';
-                    ctx.fillRect(x, y, 130, 35);
-                    ctx.strokeStyle = '#000000';
-                    ctx.strokeRect(x, y, 130, 35);
+                    // Pokemon-style button styling
+                    ctx.fillStyle = index === this.moveSelection ? CONSTANTS.COLORS.UI_HIGHLIGHT : CONSTANTS.COLORS.WHITE;
+                    ctx.fillRect(x, y, buttonWidth, buttonHeight);
+                    ctx.strokeStyle = CONSTANTS.COLORS.BLACK;
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(x, y, buttonWidth, buttonHeight);
 
-                    ctx.fillStyle = '#000000';
-                    ctx.font = 'bold 14px monospace';
+                    // Move name text
                     const moveName = typeof move === 'string' ? move : move.name;
-                    ctx.fillText(moveName, x + 5, y + 23);
+                    ctx.fillStyle = index === this.moveSelection ? CONSTANTS.COLORS.WHITE : CONSTANTS.COLORS.BLACK;
+                    ctx.font = 'bold 14px monospace';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(moveName, x + buttonWidth / 2, y + buttonHeight / 2 + 5);
+                    ctx.textAlign = 'left'; // Reset alignment
                 }
             });
         }

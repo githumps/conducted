@@ -946,8 +946,10 @@ Game.prototype.renderOverworld = function(ctx) {
     // Draw player (centered on screen or clamped to map edges)
     const playerScreenX = (this.player.x * tileSize) - clampedCameraX;
     const playerScreenY = (this.player.y * tileSize) - clampedCameraY;
-    ctx.fillStyle = '#FF0000';
-    ctx.fillRect(playerScreenX, playerScreenY, tileSize, tileSize);
+
+    // TODO: Load proper player sprite from assets/sprites/player/
+    // For now, draw a Pokemon-style trainer representation
+    this.drawPlayer(ctx, playerScreenX, playerScreenY, tileSize, this.player.direction);
 
     // Debug info
     ctx.fillStyle = CONSTANTS.COLORS.WHITE;
@@ -968,6 +970,58 @@ Game.prototype.getTileColor = function(tile) {
         12: '#8B4513' // door
     };
     return colors[tile] || '#FF00FF';
+};
+
+// Draw player character (interim solution until proper sprite is generated)
+Game.prototype.drawPlayer = function(ctx, x, y, size, direction) {
+    const centerX = x + size / 2;
+    const centerY = y + size / 2;
+    const radius = size * 0.35;
+
+    // Body (Pokemon trainer style - simple circle/oval)
+    ctx.fillStyle = CONSTANTS.COLORS.UI_HIGHLIGHT; // Blue shirt
+    ctx.beginPath();
+    ctx.ellipse(centerX, centerY + size * 0.1, radius * 0.9, radius * 1.1, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Head
+    ctx.fillStyle = CONSTANTS.COLORS.LIGHT; // Skin tone
+    ctx.beginPath();
+    ctx.arc(centerX, centerY - size * 0.15, radius * 0.6, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Hat (Pokemon trainer style)
+    ctx.fillStyle = CONSTANTS.COLORS.HP_RED;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY - size * 0.15, radius * 0.65, Math.PI, Math.PI * 2);
+    ctx.fill();
+
+    // Direction indicator (simple arrow/facing)
+    ctx.fillStyle = CONSTANTS.COLORS.BLACK;
+    ctx.beginPath();
+    switch (direction) {
+        case CONSTANTS.DIRECTIONS.UP:
+            ctx.moveTo(centerX, centerY - size * 0.35);
+            ctx.lineTo(centerX - size * 0.1, centerY - size * 0.2);
+            ctx.lineTo(centerX + size * 0.1, centerY - size * 0.2);
+            break;
+        case CONSTANTS.DIRECTIONS.DOWN:
+            ctx.moveTo(centerX, centerY + size * 0.4);
+            ctx.lineTo(centerX - size * 0.1, centerY + size * 0.25);
+            ctx.lineTo(centerX + size * 0.1, centerY + size * 0.25);
+            break;
+        case CONSTANTS.DIRECTIONS.LEFT:
+            ctx.moveTo(centerX - size * 0.35, centerY);
+            ctx.lineTo(centerX - size * 0.2, centerY - size * 0.1);
+            ctx.lineTo(centerX - size * 0.2, centerY + size * 0.1);
+            break;
+        case CONSTANTS.DIRECTIONS.RIGHT:
+            ctx.moveTo(centerX + size * 0.35, centerY);
+            ctx.lineTo(centerX + size * 0.2, centerY - size * 0.1);
+            ctx.lineTo(centerX + size * 0.2, centerY + size * 0.1);
+            break;
+    }
+    ctx.fill();
 };
 
 Game.prototype.renderBattle = function(ctx) {
@@ -1119,7 +1173,7 @@ Game.prototype.updateMenu = function() {
         }
 
         // Cancel
-        if (this.input.isKeyJustPressed('Backspace') || this.input.isKeyJustPressed('x') || this.input.isVirtualKeyJustPressed('b')) {
+        if (this.input.isKeyJustPressed('Backspace') || this.input.isKeyJustPressed('x') || this.input.isVirtualKeyJustPressed('b') || this.input.isKeyJustPressed('Escape')) {
             this.bagMode = 'list';
             this.selectedItem = null;
         }
@@ -1152,18 +1206,35 @@ Game.prototype.updateMenu = function() {
         }
 
         // Back to main menu
-        if (this.input.isKeyJustPressed('Backspace') || this.input.isKeyJustPressed('x') || this.input.isVirtualKeyJustPressed('b')) {
+        if (this.input.isKeyJustPressed('Backspace') || this.input.isKeyJustPressed('x') || this.input.isVirtualKeyJustPressed('b') || this.input.isKeyJustPressed('Escape')) {
             this.menuSelection = 0;
             this.bagMode = null;  // Clear bag mode to return to main menu
         }
         return;
     }
 
-    // Main menu navigation
+    // TRAINS mode - view party
+    if (this.menuOptions[this.menuSelection] === 'TRAINS' && this.bagMode === 'trains') {
+        // Navigate trains
+        if (this.input.isKeyJustPressed('ArrowUp') || this.input.isVirtualKeyJustPressed('up')) {
+            this.trainSelection = Math.max(0, this.trainSelection - 1);
+        } else if (this.input.isKeyJustPressed('ArrowDown') || this.input.isVirtualKeyJustPressed('down')) {
+            this.trainSelection = Math.min(this.player.party.length - 1, this.trainSelection + 1);
+        }
+
+        // Back to main menu
+        if (this.input.isKeyJustPressed('Backspace') || this.input.isKeyJustPressed('x') || this.input.isVirtualKeyJustPressed('b') || this.input.isKeyJustPressed('Escape')) {
+            this.menuSelection = 0;
+            this.bagMode = null;  // Clear trains mode to return to main menu
+        }
+        return;
+    }
+
+    // Main menu navigation with wrapping
     if (this.input.isKeyJustPressed('ArrowUp') || this.input.isVirtualKeyJustPressed('up')) {
-        this.menuSelection = Math.max(0, this.menuSelection - 1);
+        this.menuSelection = (this.menuSelection - 1 + this.menuOptions.length) % this.menuOptions.length;
     } else if (this.input.isKeyJustPressed('ArrowDown') || this.input.isVirtualKeyJustPressed('down')) {
-        this.menuSelection = Math.min(this.menuOptions.length - 1, this.menuSelection + 1);
+        this.menuSelection = (this.menuSelection + 1) % this.menuOptions.length;
     }
 
     // Select menu option
@@ -1171,7 +1242,8 @@ Game.prototype.updateMenu = function() {
         const option = this.menuOptions[this.menuSelection];
 
         if (option === 'TRAINS') {
-            console.log('TRAINS menu - not yet implemented');
+            this.trainSelection = 0;
+            this.bagMode = 'trains'; // Reuse bagMode for trains view
         } else if (option === 'BAG') {
             this.bagSelection = 0;
             this.bagMode = 'list';
@@ -1213,6 +1285,8 @@ Game.prototype.renderMenu = function() {
     // Only show submenus when they're actually open (shopMode/bagMode set), not just highlighted
     if (this.menuOptions[this.menuSelection] === 'SHOP' && this.shopMode === 'active') {
         UI.drawShop(this.ctx, this.shopItems, this.shopSelection, this.player);
+    } else if (this.menuOptions[this.menuSelection] === 'TRAINS' && this.bagMode === 'trains') {
+        UI.drawTrainParty(this.ctx, this.player, this.trainSelection);
     } else if (this.menuOptions[this.menuSelection] === 'BAG' && this.bagMode) {
         if (this.bagMode === 'use_on_train') {
             UI.drawBagUseOnTrain(this.ctx, this.player, this.trainSelection, this.selectedItem);
