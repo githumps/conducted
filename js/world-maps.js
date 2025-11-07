@@ -95,7 +95,11 @@ const WORLD_MAPS = {
       const tile = this.getTile(x, y);
       const npcAtPosition = this.npcs.find(npc => npc.x === x && npc.y === y);
       if (npcAtPosition) return false;
-      const walkableTiles = [1, 2, 3, 12];
+
+      // PistonTown uses tileset indices from piston-town.png
+      // Walkable: 139=path, 140=door, 226=grass, 227=tall_grass
+      // Blocked: 163=buildings, 132=special_tiles
+      const walkableTiles = [139, 140, 226, 227];
       return walkableTiles.includes(tile);
     },
     checkForEncounter: function() {

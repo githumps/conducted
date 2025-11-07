@@ -296,6 +296,51 @@ class UI {
         ctx.font = '16px monospace';
         ctx.fillText('Press A to buy • B to exit', x + 20, y + height - 20);
     }
+
+    static drawTrainParty(ctx, player, trainSelection) {
+        const x = 100;
+        const y = 150;
+        const width = 550;
+        const height = 350;
+
+        // Draw box
+        ctx.fillStyle = CONSTANTS.COLORS.WHITE;
+        ctx.fillRect(x, y, width, height);
+        ctx.strokeStyle = CONSTANTS.COLORS.BLACK;
+        ctx.lineWidth = 3;
+        ctx.strokeRect(x, y, width, height);
+
+        // Title
+        ctx.fillStyle = CONSTANTS.COLORS.BLACK;
+        ctx.font = 'bold 20px monospace';
+        ctx.fillText('Your Trains', x + 20, y + 35);
+
+        // Train list
+        ctx.font = '18px monospace';
+        const lineHeight = 50;
+
+        for (let i = 0; i < player.party.length; i++) {
+            const train = player.party[i];
+            const trainY = y + 80 + i * lineHeight;
+
+            // Highlight selected
+            if (i === trainSelection) {
+                ctx.fillStyle = CONSTANTS.COLORS.UI_HIGHLIGHT;
+                ctx.fillRect(x + 10, trainY - 30, width - 20, lineHeight - 5);
+                ctx.fillStyle = CONSTANTS.COLORS.WHITE;
+            } else {
+                ctx.fillStyle = CONSTANTS.COLORS.BLACK;
+            }
+
+            const hpPercent = Math.floor((train.currentHP / train.stats.hp) * 100);
+            ctx.fillText(`${train.name} Lv${train.level} HP: ${train.currentHP}/${train.stats.hp} (${hpPercent}%)`, x + 20, trainY);
+        }
+
+        // Instructions
+        ctx.fillStyle = CONSTANTS.COLORS.BLACK;
+        ctx.font = '16px monospace';
+        ctx.fillText('Press B to return', x + 20, y + height - 20);
+    }
 }
 
 class DialogueBox {

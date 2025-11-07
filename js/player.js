@@ -62,7 +62,8 @@ class Player {
 
         // Check collision with map if provided
         if (map) {
-            if (map.isWalkable(newX, newY)) {
+            const walkable = map.isWalkable(newX, newY);
+            if (walkable) {
                 this.targetX = newX;
                 this.targetY = newY;
                 this.isMoving = true;
