@@ -27,7 +27,7 @@ class InputHandler {
 
         window.addEventListener('keyup', (e) => {
             this.keys[e.key] = false;
-            this.keyJustPressed[e.key] = false;
+            // Don't clear keyJustPressed on keyup - let it be consumed by the game loop
         });
     }
 

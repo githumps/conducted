@@ -3,38 +3,49 @@
  */
 
 const MOVES_DB = {
-    // Normal/Generic moves
-    "Tackle": { type: "PASSENGER", category: "physical", power: 40, accuracy: 100, pp: 35, effect: null },
-    "Quick Attack": { type: "PASSENGER", category: "physical", power: 40, accuracy: 100, pp: 30, effect: { priority: 1 } },
-    "Body Slam": { type: "PASSENGER", category: "physical", power: 85, accuracy: 100, pp: 15, effect: { paralyze_chance: 30 } },
+    // Normal/Generic moves (PASSENGER type)
+    "Ram": { type: "PASSENGER", category: "physical", power: 40, accuracy: 100, pp: 35, effect: null },
+    "Express Shunt": { type: "PASSENGER", category: "physical", power: 40, accuracy: 100, pp: 30, effect: { priority: 1 } },
+    "Full Throttle": { type: "PASSENGER", category: "physical", power: 85, accuracy: 100, pp: 15, effect: { paralyze_chance: 30 } },
+    "Emergency Brake": { type: "PASSENGER", category: "status", power: 0, accuracy: 100, pp: 30, effect: { raise_defense: 1 } },
+    "Whistle Blast": { type: "PASSENGER", category: "status", power: 0, accuracy: 100, pp: 30, effect: { lower_defense: 1 } },
+    "Wheel Grind": { type: "PASSENGER", category: "status", power: 0, accuracy: 100, pp: 30, effect: { lower_defense: 1 } },
+    "Horn Honk": { type: "PASSENGER", category: "status", power: 0, accuracy: 100, pp: 40, effect: { lower_attack: 1 } },
+    "Track Grease": { type: "PASSENGER", category: "status", power: 0, accuracy: 95, pp: 40, effect: { lower_speed: 1 } },
+    "High Beams": { type: "PASSENGER", category: "status", power: 0, accuracy: 100, pp: 30, effect: { paralyze: 100 } },
+    "Multi-Track Drift": { type: "PASSENGER", category: "physical", power: 15, accuracy: 85, pp: 20, effect: { multi_hit: "2-5" } },
+    "Coupler Crush": { type: "PASSENGER", category: "physical", power: 80, accuracy: 90, pp: 15, effect: { flinch_chance: 10 } },
+    "Derailment": { type: "PASSENGER", category: "physical", power: 0, accuracy: 90, pp: 10, effect: { percentage_damage: 50 } },
+    "Iron Bumper": { type: "PASSENGER", category: "physical", power: 60, accuracy: 100, pp: 25, effect: { flinch_chance: 30 } },
 
     // Steam moves
-    "Whistle": { type: "STEAM", category: "status", power: 0, accuracy: 100, pp: 40, effect: { lower_attack: 1 } },
     "Coal Throw": { type: "STEAM", category: "physical", power: 50, accuracy: 95, pp: 25, effect: { burn_chance: 10 } },
     "Steam Jet": { type: "STEAM", category: "special", power: 65, accuracy: 100, pp: 20, effect: { burn_chance: 20 } },
     "Boiler Burst": { type: "STEAM", category: "special", power: 90, accuracy: 85, pp: 15, effect: { burn_chance: 30 } },
     "Pressure Blast": { type: "STEAM", category: "special", power: 110, accuracy: 80, pp: 10, effect: null },
     "Mega Steam": { type: "STEAM", category: "special", power: 150, accuracy: 90, pp: 5, effect: { recoil: 50 } },
+    "Smoke Screen": { type: "STEAM", category: "status", power: 0, accuracy: 100, pp: 20, effect: { lower_accuracy: 1 } },
 
     // Electric moves
     "Spark": { type: "ELECTRIC", category: "physical", power: 40, accuracy: 100, pp: 30, effect: { paralyze_chance: 10 } },
-    "Thunder Shock": { type: "ELECTRIC", category: "special", power: 40, accuracy: 100, pp: 30, effect: { paralyze_chance: 10 } },
+    "Pantograph Spark": { type: "ELECTRIC", category: "special", power: 40, accuracy: 100, pp: 30, effect: { paralyze_chance: 10 } },
     "Charge Beam": { type: "ELECTRIC", category: "special", power: 65, accuracy: 100, pp: 20, effect: { raise_special: 70 } },
-    "Thunder Wave": { type: "ELECTRIC", category: "status", power: 0, accuracy: 100, pp: 20, effect: { paralyze: 100 } },
+    "Third Rail": { type: "ELECTRIC", category: "status", power: 0, accuracy: 100, pp: 20, effect: { paralyze: 100 } },
     "Rail Gun": { type: "ELECTRIC", category: "special", power: 90, accuracy: 100, pp: 15, effect: null },
     "Lightning Express": { type: "ELECTRIC", category: "special", power: 110, accuracy: 85, pp: 10, effect: null },
-    "Electromagnetic Pulse": { type: "ELECTRIC", category: "special", power: 120, accuracy: 70, pp: 5, effect: { lower_special: 1 } },
-    "Thunder": { type: "ELECTRIC", category: "special", power: 120, accuracy: 70, pp: 10, effect: { paralyze_chance: 30 } },
+    "EMP Blast": { type: "ELECTRIC", category: "special", power: 120, accuracy: 70, pp: 5, effect: { lower_special: 1 } },
+    "Overload": { type: "ELECTRIC", category: "special", power: 120, accuracy: 70, pp: 10, effect: { paralyze_chance: 30 } },
 
     // Diesel moves
     "Diesel Spray": { type: "DIESEL", category: "special", power: 55, accuracy: 95, pp: 25, effect: null },
     "Engine Rev": { type: "DIESEL", category: "status", power: 0, accuracy: 100, pp: 30, effect: { raise_attack: 1 } },
     "Fuel Blast": { type: "DIESEL", category: "special", power: 80, accuracy: 100, pp: 15, effect: null },
     "Turbo Charge": { type: "DIESEL", category: "physical", power: 100, accuracy: 95, pp: 10, effect: null },
+    "Exhaust Fumes": { type: "DIESEL", category: "physical", power: 15, accuracy: 100, pp: 35, effect: { poison_chance: 30 } },
 
     // Freight moves
     "Cargo Toss": { type: "FREIGHT", category: "physical", power: 50, accuracy: 100, pp: 25, effect: null },
-    "Cargo Cannon": { type: "FREIGHT", category: "physical", power: 70, accuracy: 95, pp: 20, effect: null },
+    "Boxcar Bash": { type: "FREIGHT", category: "physical", power: 70, accuracy: 95, pp: 20, effect: null },
     "Container Crush": { type: "FREIGHT", category: "physical", power: 85, accuracy: 100, pp: 15, effect: null },
     "Freight Frenzy": { type: "FREIGHT", category: "physical", power: 120, accuracy: 100, pp: 10, effect: { must_recharge: true } },
     "Heavy Haul": { type: "FREIGHT", category: "physical", power: 100, accuracy: 90, pp: 10, effect: null },
@@ -42,40 +53,29 @@ const MOVES_DB = {
     // Maglev moves
     "Maglev Rush": { type: "MAGLEV", category: "physical", power: 80, accuracy: 100, pp: 15, effect: null },
     "Magnetic Pulse": { type: "MAGLEV", category: "special", power: 90, accuracy: 95, pp: 10, effect: null },
-    "Gust": { type: "MAGLEV", category: "special", power: 40, accuracy: 100, pp: 35, effect: null },
-    "Wing Attack": { type: "MAGLEV", category: "physical", power: 60, accuracy: 100, pp: 35, effect: null },
+    "Levitation": { type: "MAGLEV", category: "special", power: 40, accuracy: 100, pp: 35, effect: null },
+    "Sonic Boom": { type: "MAGLEV", category: "physical", power: 60, accuracy: 100, pp: 35, effect: null },
+    "Signal Jam": { type: "MAGLEV", category: "special", power: 50, accuracy: 100, pp: 25, effect: { confuse_chance: 10 } },
 
     // Passenger moves
     "Passenger Rush": { type: "PASSENGER", category: "physical", power: 75, accuracy: 100, pp: 20, effect: null },
     "Express Service": { type: "PASSENGER", category: "special", power: 95, accuracy: 100, pp: 10, effect: { priority: 1 } },
-    "Hyper Fang": { type: "PASSENGER", category: "physical", power: 80, accuracy: 90, pp: 15, effect: { flinch_chance: 10 } },
-    "Super Fang": { type: "PASSENGER", category: "physical", power: 0, accuracy: 90, pp: 10, effect: { percentage_damage: 50 } },
-    "Bite": { type: "PASSENGER", category: "physical", power: 60, accuracy: 100, pp: 25, effect: { flinch_chance: 30 } },
 
     // Monorail moves
-    "Peck": { type: "MONORAIL", category: "physical", power: 35, accuracy: 100, pp: 35, effect: null },
-    "Drill Peck": { type: "MONORAIL", category: "physical", power: 80, accuracy: 100, pp: 20, effect: null },
+    "Mono-Strike": { type: "MONORAIL", category: "physical", power: 35, accuracy: 100, pp: 35, effect: null },
+    "Beam Balance": { type: "MONORAIL", category: "physical", power: 80, accuracy: 100, pp: 20, effect: null },
 
     // Nuclear moves
-    "Radiation": { type: "NUCLEAR", category: "special", power: 65, accuracy: 100, pp: 20, effect: { poison_chance: 30 } },
-    "Atomic Blast": { type: "NUCLEAR", category: "special", power: 120, accuracy: 90, pp: 5, effect: { recoil: 33 } },
-
-    // Status moves
-    "Harden": { type: "PASSENGER", category: "status", power: 0, accuracy: 100, pp: 30, effect: { raise_defense: 1 } },
-    "Leer": { type: "PASSENGER", category: "status", power: 0, accuracy: 100, pp: 30, effect: { lower_defense: 1 } },
-    "Tail Whip": { type: "PASSENGER", category: "status", power: 0, accuracy: 100, pp: 30, effect: { lower_defense: 1 } },
-    "Growl": { type: "PASSENGER", category: "status", power: 0, accuracy: 100, pp: 40, effect: { lower_attack: 1 } },
-    "String Shot": { type: "PASSENGER", category: "status", power: 0, accuracy: 95, pp: 40, effect: { lower_speed: 1 } },
-    "Glare": { type: "PASSENGER", category: "status", power: 0, accuracy: 100, pp: 30, effect: { paralyze: 100 } },
-    "Confusion": { type: "MAGLEV", category: "special", power: 50, accuracy: 100, pp: 25, effect: { confuse_chance: 10 } },
-    "Fury Attack": { type: "PASSENGER", category: "physical", power: 15, accuracy: 85, pp: 20, effect: { multi_hit: "2-5" } },
-    "Poison Sting": { type: "DIESEL", category: "physical", power: 15, accuracy: 100, pp: 35, effect: { poison_chance: 30 } },
+    "Radiation Leak": { type: "NUCLEAR", category: "special", power: 65, accuracy: 100, pp: 20, effect: { poison_chance: 30 } },
+    "Reactor Meltdown": { type: "NUCLEAR", category: "special", power: 120, accuracy: 90, pp: 5, effect: { recoil: 33 } },
 };
 
 /**
  * Calculate damage using Gen 1 Pokemon formula
  */
-function calculateDamage(attacker, defender, moveName) {
+// opts.attackStat / opts.defenseStat let the caller pass stage-adjusted stats
+// (Gen-1 stat stages live in the Battle, not on the Train instance).
+function calculateDamage(attacker, defender, moveName, opts = {}) {
     const moveData = MOVES_DB[moveName];
 
     // Status moves don't do damage
@@ -89,12 +89,14 @@ function calculateDamage(attacker, defender, moveName) {
         return { damage: 0, critical: false, effectiveness: 1.0, hit: false };
     }
 
-    // Special damage calculations
+    // Fixed/percentage damage still respects type immunity (0x) - a move that
+    // "can't touch" a type should not chip a fixed 50% off it.
     if (moveData.effect && moveData.effect.percentage_damage) {
+        const eff = getTypeEffectiveness(moveData.type, defender.types);
         return {
-            damage: Math.floor(defender.currentHP * moveData.effect.percentage_damage / 100),
+            damage: eff === 0 ? 0 : Math.floor(defender.currentHP * moveData.effect.percentage_damage / 100),
             critical: false,
-            effectiveness: 1.0,
+            effectiveness: eff,
             hit: true
         };
     }
@@ -103,14 +105,14 @@ function calculateDamage(attacker, defender, moveName) {
     const level = attacker.level;
     const power = moveData.power;
 
-    // Determine if physical or special
+    // Determine if physical or special (caller may override with staged stats)
     let attack, defense;
     if (moveData.category === "physical") {
-        attack = attacker.attack;
-        defense = defender.defense;
+        attack = opts.attackStat != null ? opts.attackStat : attacker.attack;
+        defense = opts.defenseStat != null ? opts.defenseStat : defender.defense;
     } else {
-        attack = attacker.special;
-        defense = defender.special;
+        attack = opts.attackStat != null ? opts.attackStat : attacker.special;
+        defense = opts.defenseStat != null ? opts.defenseStat : defender.special;
     }
 
     // Base damage formula (Gen 1)

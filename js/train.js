@@ -39,8 +39,10 @@ class Train {
         this.status = null;
         this.fainted = false;
 
-        // Types
-        this.types = this.species.types;
+        // Types - CLONE the template array. `this.species` is a shared
+        // read-only template; aliasing its arrays would let a type-changing
+        // move corrupt every train of this species. Always copy mutable state.
+        this.types = [...this.species.types];
     }
 
     calculateStat(statName) {
@@ -118,7 +120,7 @@ class Train {
                 moves.push(moveData.move);
             }
         }
-        return moves.length > 0 ? moves : ["Tackle"];
+        return moves.length > 0 ? moves : ["Ram"];
     }
 
     takeDamage(damage) {
@@ -146,23 +148,26 @@ class Train {
         return CONSTANTS.COLORS.HP_RED;
     }
 
-    canEvolve() {
+    // context may carry { item } for stone-style evolutions.
+    canEvolve(context = {}) {
         const evolution = this.species.evolution;
-        if (evolution) {
-            if (evolution.method === 'level' && this.level >= evolution.level) {
-                return true;
-            }
+        if (!evolution) return false;
+        if (evolution.method === 'level') {
+            return this.level >= evolution.level;
+        }
+        if (evolution.method === 'item') {
+            return context.item === evolution.item;
         }
         return false;
     }
 
-    evolve() {
+    evolve(context = {}) {
         const evolution = this.species.evolution;
-        if (evolution && this.canEvolve()) {
+        if (evolution && this.canEvolve(context)) {
             this.speciesId = evolution.evolvesTo;
             this.species = TRAIN_SPECIES[this.speciesId];
             this.nickname = this.species.name;
-            this.types = this.species.types;
+            this.types = [...this.species.types];
 
             // Update base stats
             this.baseHP = this.species.baseStats.hp;

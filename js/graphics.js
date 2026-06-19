@@ -9,8 +9,23 @@ function loadImage(src) {
   if (IMG_CACHE.has(src)) return IMG_CACHE.get(src);
   const p = new Promise((resolve, reject) => {
     const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = reject;
+
+    const timeoutId = setTimeout(() => {
+      console.warn(`Image load timed out: ${src}`);
+      // Resolve with empty image or null to prevent blocking, or reject
+      // Resolving with the image object (even if incomplete) might be safer than rejecting if we want to continue
+      // But rejecting allows the caller to handle it.
+      reject(new Error(`Timeout loading ${src}`));
+    }, 2000);
+
+    img.onload = () => {
+      clearTimeout(timeoutId);
+      resolve(img);
+    };
+    img.onerror = (e) => {
+      clearTimeout(timeoutId);
+      reject(e);
+    };
     img.src = src;
   });
   IMG_CACHE.set(src, p);

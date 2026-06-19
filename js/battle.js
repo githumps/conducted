@@ -3,22 +3,30 @@
  */
 
 class Battle {
-    constructor(playerTrains, enemyTrains, isWild = true, trainerNPC = null) {
+    constructor(game, playerTrains, enemyTrains, isWild = true, trainerNPC = null) {
+        this.game = game;
         this.playerTrains = playerTrains;
         this.enemyTrains = enemyTrains;
         this.isWild = isWild;
         this.trainerNPC = trainerNPC;
 
-        // If trainerNPC is actually playerInventory (backwards compatibility)
-        if (trainerNPC && !trainerNPC.name && typeof trainerNPC === 'object') {
-            this.playerInventory = trainerNPC;
-            this.trainerNPC = null;
-        } else {
-            this.playerInventory = null;
-        }
+        // Inventory is read live from the player (single source of truth) rather
+        // than passed in via an ambiguous overloaded parameter.
+        this.playerInventory = (game && game.player) ? game.player.items : null;
 
         this.playerActive = playerTrains[0];
         this.enemyActive = enemyTrains[0];
+
+        // Gen-1 stat stages live on the battle, per side, not on the Train
+        // instance (so they reset when the battle ends and never persist).
+        this.stages = {
+            player: { attack: 0, defense: 0, speed: 0, special: 0 },
+            enemy: { attack: 0, defense: 0, speed: 0, special: 0 }
+        };
+        // Per-turn flinch flags (cleared at the start of each turn).
+        this.flinch = { player: false, enemy: false };
+        // Ordered actions for the current turn.
+        this.turnActions = [];
 
         this.state = CONSTANTS.BATTLE_STATES.INTRO;
         this.messages = [];
@@ -156,7 +164,7 @@ class Battle {
                     break;
                 case 1:
                     // ITEM
-                    if (this.playerInventory) {
+                    if (this.getUsableItems().length > 0) {
                         this.state = CONSTANTS.BATTLE_STATES.ITEM;
                         this.itemSelection = 0;
                     } else {
@@ -166,10 +174,8 @@ class Battle {
                     }
                     break;
                 case 2:
-                    // POKEMON - not implemented
-                    this.addMessage("No other trains available!");
-                    this.state = CONSTANTS.BATTLE_STATES.MESSAGE;
-                    this.currentMessage = 0;
+                    // TRAIN - switch to a healthy benched train (costs the turn).
+                    this.switchToBenchedTrain();
                     break;
                 case 3:
                     // RUN
@@ -199,134 +205,275 @@ class Battle {
         } else if (action === 'right' && this.moveSelection % 2 === 0 && this.moveSelection + 1 < moves.length) {
             this.moveSelection++;
         } else if (action === 'a') {
-            this.executePlayerMove(moves[this.moveSelection]);
+            this.executeTurn(moves[this.moveSelection]);
         } else if (action === 'b') {
             this.state = CONSTANTS.BATTLE_STATES.MENU;
         }
     }
 
-    executePlayerMove(moveName) {
+    // Entry point when the player commits to a move. Builds the ordered turn
+    // and resolves it action-by-action. Damage is computed at resolution time
+    // (not here), so the second attacker hits the post-first-hit state.
+    executeTurn(playerMoveName) {
         this.state = CONSTANTS.BATTLE_STATES.ANIMATION;
+        this.flinch.player = false;
+        this.flinch.enemy = false;
 
-        // Player attacks first (simplified, should check speed)
-        this.addMessage(`${this.playerActive.species.name} used ${moveName}!`);
-
-        const result = calculateDamage(this.playerActive, this.enemyActive, moveName);
-
-        // Trigger attack animation
-        const moveData = MOVES_DB[moveName];
-        if (moveData?.category === 'physical') {
-            this.playerShake = 3; // Physical: attacker shakes forward
-        }
-
-        this.animationQueue.push({
-            callback: () => {
-                if (!result.hit) {
-                    this.addMessage("Attack missed!");
-                } else {
-                    // Show damage flash on defender
-                    this.enemyFlash = 1;
-
-                    if (result.critical) {
-                        this.addMessage("Critical hit!");
-                    }
-
-                    const effectivenessText = getEffectivenessText(result.effectiveness);
-                    if (effectivenessText) {
-                        this.addMessage(effectivenessText);
-                    }
-
-                    this.enemyActive.takeDamage(result.damage);
-
-                    if (this.enemyActive.fainted) {
-                        this.addMessage(`Enemy ${this.enemyActive.species.name} fainted!`);
-                        this.handleVictory();
-                        return;
-                    }
-                }
-
-                // Enemy turn
-                this.executeEnemyMove();
-            }
-        });
+        const enemyMoveName = Utils.randomChoice(this.enemyActive.moves) || 'Ram';
+        this.turnActions = this.orderActions(playerMoveName, enemyMoveName);
+        this.processNextAction();
     }
 
-    executeEnemyMove() {
-        // Simple AI: pick random move
-        const moves = this.enemyActive.moves;
-        const moveName = Utils.randomChoice(moves);
+    // Order by move priority, then effective (status-adjusted) speed, ties random.
+    orderActions(playerMoveName, enemyMoveName) {
+        const playerAction = { side: 'player', attacker: this.playerActive, defender: this.enemyActive, move: playerMoveName };
+        const enemyAction = { side: 'enemy', attacker: this.enemyActive, defender: this.playerActive, move: enemyMoveName };
 
-        this.addMessage(`Enemy ${this.enemyActive.species.name} used ${moveName}!`);
+        const pPrio = (MOVES_DB[playerMoveName] && MOVES_DB[playerMoveName].effect && MOVES_DB[playerMoveName].effect.priority) || 0;
+        const ePrio = (MOVES_DB[enemyMoveName] && MOVES_DB[enemyMoveName].effect && MOVES_DB[enemyMoveName].effect.priority) || 0;
+        if (pPrio !== ePrio) return pPrio > ePrio ? [playerAction, enemyAction] : [enemyAction, playerAction];
 
-        const result = calculateDamage(this.enemyActive, this.playerActive, moveName);
+        const pSpeed = this.effectiveSpeed('player', this.playerActive);
+        const eSpeed = this.effectiveSpeed('enemy', this.enemyActive);
+        if (pSpeed !== eSpeed) return pSpeed > eSpeed ? [playerAction, enemyAction] : [enemyAction, playerAction];
 
-        // Trigger attack animation
-        const moveData = MOVES_DB[moveName];
-        if (moveData?.category === 'physical') {
-            this.enemyShake = 3; // Physical: attacker shakes forward
+        return Utils.randomInt(0, 1) === 0 ? [playerAction, enemyAction] : [enemyAction, playerAction];
+    }
+
+    effectiveSpeed(side, train) {
+        let speed = this.effectiveStat(side, train, 'speed');
+        if (train.status === 'paralyze') speed = Math.floor(speed / 4); // Gen-1 paralysis
+        return speed;
+    }
+
+    // Gen-1 stat-stage multiplier.
+    stageMult(stage) {
+        return stage >= 0 ? (2 + stage) / 2 : 2 / (2 - stage);
+    }
+
+    effectiveStat(side, train, statName) {
+        const stage = (this.stages[side] && this.stages[side][statName]) || 0;
+        return Math.max(1, Math.floor(train[statName] * this.stageMult(stage)));
+    }
+
+    resetStages(side) {
+        this.stages[side] = { attack: 0, defense: 0, speed: 0, special: 0 };
+    }
+
+    // Pull the next action off the turn queue and resolve it.
+    processNextAction() {
+        // Stop the turn if either active train has fainted; checkBattleEnd
+        // (the single end-of-battle owner) runs once the queue drains.
+        if (this.playerActive.fainted || this.enemyActive.fainted) {
+            this.turnActions = [];
+            return;
+        }
+        if (this.turnActions.length === 0) {
+            this.endOfTurn();
+            return;
         }
 
-        this.animationQueue.push({
-            callback: () => {
-                if (!result.hit) {
-                    this.addMessage("Attack missed!");
-                } else {
-                    // Show damage flash on defender
-                    this.playerFlash = 1;
+        const action = this.turnActions.shift();
+        if (action.attacker.fainted) {
+            this.processNextAction();
+            return;
+        }
 
-                    if (result.critical) {
-                        this.addMessage("Critical hit!");
-                    }
+        const prefix = action.side === 'enemy' ? 'Enemy ' : '';
 
-                    const effectivenessText = getEffectivenessText(result.effectiveness);
-                    if (effectivenessText) {
-                        this.addMessage(effectivenessText);
-                    }
+        // Paralysis full-skip (25%).
+        if (action.attacker.status === 'paralyze' && Utils.randomInt(1, 100) <= 25) {
+            this.addMessage(`${prefix}${action.attacker.species.name} is paralyzed! It can't move!`);
+            this.animationQueue.push({ callback: () => this.processNextAction() });
+            return;
+        }
+        // Flinch (set by a faster attacker earlier this turn).
+        if (this.flinch[action.side]) {
+            this.flinch[action.side] = false;
+            this.addMessage(`${prefix}${action.attacker.species.name} flinched and couldn't move!`);
+            this.animationQueue.push({ callback: () => this.processNextAction() });
+            return;
+        }
 
-                    this.playerActive.takeDamage(result.damage);
+        this.addMessage(`${prefix}${action.attacker.species.name} used ${action.move}!`);
+        this.animationQueue.push({ callback: () => this.performAttack(action) });
+    }
 
-                    if (this.playerActive.fainted) {
-                        this.addMessage(`${this.playerActive.species.name} fainted!`);
-                        this.handleDefeat();
-                        return;
-                    }
-                }
+    // Resolve a single attack. Damage is computed HERE, against current state.
+    performAttack(action) {
+        const { side, attacker, defender, move } = action;
+        const moveData = MOVES_DB[move];
+        const defenderSide = side === 'player' ? 'enemy' : 'player';
+        const physical = moveData.category === 'physical';
 
-                // Back to menu
-                this.state = CONSTANTS.BATTLE_STATES.MESSAGE;
-                this.currentMessage = 0;
+        if (physical) {
+            if (side === 'player') this.playerShake = 3; else this.enemyShake = 3;
+        }
+
+        // Status moves: apply effect, no damage.
+        if (moveData.category === 'status') {
+            this.applyMoveEffect(action, moveData);
+            this.processNextAction();
+            return;
+        }
+
+        // Staged + burn-adjusted attacking stat.
+        let attackStat = this.effectiveStat(side, attacker, physical ? 'attack' : 'special');
+        if (physical && attacker.status === 'burn') attackStat = Math.floor(attackStat / 2);
+        const defenseStat = this.effectiveStat(defenderSide, defender, physical ? 'defense' : 'special');
+
+        const hits = (moveData.effect && moveData.effect.multi_hit) ? Utils.randomInt(2, 5) : 1;
+        let totalDamage = 0;
+        let result = { hit: true, critical: false, effectiveness: 1.0 };
+        for (let h = 0; h < hits; h++) {
+            result = calculateDamage(attacker, defender, move, { attackStat, defenseStat });
+            if (!result.hit) break;
+            if (side === 'player') this.enemyFlash = 1; else this.playerFlash = 1;
+            defender.takeDamage(result.damage);
+            totalDamage += result.damage;
+            if (defender.fainted) break;
+        }
+
+        if (!result.hit && totalDamage === 0) {
+            this.addMessage('Attack missed!');
+            this.processNextAction();
+            return;
+        }
+
+        if (result.critical) this.addMessage('Critical hit!');
+        const effText = getEffectivenessText(result.effectiveness);
+        if (effText) this.addMessage(effText);
+        if (hits > 1) this.addMessage(`Hit ${hits} times!`);
+
+        // Recoil to the attacker.
+        if (moveData.effect && moveData.effect.recoil && totalDamage > 0) {
+            const recoil = Math.max(1, Math.floor(totalDamage * moveData.effect.recoil / 100));
+            attacker.takeDamage(recoil);
+            this.addMessage(`${attacker.species.name} is hit with recoil!`);
+        }
+
+        if (defender.fainted) {
+            this.addMessage(`${defenderSide === 'enemy' ? 'Enemy ' : ''}${defender.species.name} fainted!`);
+            this.processNextAction();
+            return;
+        }
+
+        // Secondary effects only land if the defender survived.
+        this.applyMoveEffect(action, moveData);
+        this.processNextAction();
+    }
+
+    // Apply a move's secondary effect (status / stat stages / flinch).
+    applyMoveEffect(action, moveData) {
+        const effect = moveData.effect;
+        if (!effect) return;
+        const { side, defender } = action;
+        const defenderSide = side === 'player' ? 'enemy' : 'player';
+        const roll = (chance) => Utils.randomInt(1, 100) <= chance;
+
+        // One status condition at a time.
+        if (!defender.status) {
+            if (effect.paralyze === 100 || (effect.paralyze_chance && roll(effect.paralyze_chance))) {
+                defender.status = 'paralyze';
+                this.addMessage(`${defender.species.name} is paralyzed!`);
+            } else if (effect.burn_chance && roll(effect.burn_chance)) {
+                defender.status = 'burn';
+                this.addMessage(`${defender.species.name} was burned!`);
+            } else if (effect.poison_chance && roll(effect.poison_chance)) {
+                defender.status = 'poison';
+                this.addMessage(`${defender.species.name} was poisoned!`);
             }
-        });
+        }
+
+        if (effect.flinch_chance && roll(effect.flinch_chance)) {
+            this.flinch[defenderSide] = true;
+        }
+
+        const bump = (targetSide, stat, delta, label) => {
+            const stages = this.stages[targetSide];
+            const before = stages[stat];
+            stages[stat] = Math.max(-6, Math.min(6, before + delta));
+            if (stages[stat] !== before) {
+                const who = targetSide === 'player' ? this.playerActive : this.enemyActive;
+                this.addMessage(`${who.species.name}'s ${label} ${delta > 0 ? 'rose' : 'fell'}!`);
+            }
+        };
+        if (effect.raise_defense) bump(side, 'defense', effect.raise_defense, 'Defense');
+        if (effect.lower_defense) bump(defenderSide, 'defense', -effect.lower_defense, 'Defense');
+        if (effect.raise_attack) bump(side, 'attack', effect.raise_attack, 'Attack');
+        if (effect.lower_attack) bump(defenderSide, 'attack', -effect.lower_attack, 'Attack');
+        if (effect.lower_speed) bump(defenderSide, 'speed', -effect.lower_speed, 'Speed');
+        if (effect.raise_special && effect.raise_special <= 6) bump(side, 'special', effect.raise_special, 'Special');
+        if (effect.lower_special) bump(defenderSide, 'special', -effect.lower_special, 'Special');
+    }
+
+    // Residual damage (burn/poison) at end of turn, then back to the menu.
+    endOfTurn() {
+        const residual = (train, side) => {
+            if (train.fainted || !train.status) return;
+            let dmg = 0;
+            if (train.status === 'burn') dmg = Math.max(1, Math.floor(train.maxHP / 16));
+            else if (train.status === 'poison') dmg = Math.max(1, Math.floor(train.maxHP / 8));
+            if (dmg > 0) {
+                const prefix = side === 'enemy' ? 'Enemy ' : '';
+                train.takeDamage(dmg);
+                this.addMessage(`${prefix}${train.species.name} is hurt by its ${train.status}!`);
+                if (train.fainted) this.addMessage(`${prefix}${train.species.name} fainted!`);
+            }
+        };
+        residual(this.playerActive, 'player');
+        residual(this.enemyActive, 'enemy');
+
+        if (!this.playerActive.fainted && !this.enemyActive.fainted) {
+            this.state = CONSTANTS.BATTLE_STATES.MESSAGE;
+            this.currentMessage = 0;
+        }
+    }
+
+    // Used after a potion/boxcar - the wild/enemy train gets one free attack.
+    enemyFreeTurn() {
+        this.flinch.player = false;
+        this.flinch.enemy = false;
+        const move = Utils.randomChoice(this.enemyActive.moves) || 'Ram';
+        this.turnActions = [{ side: 'enemy', attacker: this.enemyActive, defender: this.playerActive, move }];
+        this.processNextAction();
+    }
+
+    // Grant EXP for a defeated enemy to the active train (and evolve if eligible).
+    awardExp(enemyTrain) {
+        const expGained = Math.floor(enemyTrain.species.expYield * enemyTrain.level / 7);
+        this.addMessage(`${this.playerActive.species.name} gained ${expGained} EXP!`);
+        const beforeLevel = this.playerActive.level;
+        this.playerActive.gainExp(expGained);
+        if (this.playerActive.level > beforeLevel) {
+            this.addMessage(`${this.playerActive.species.name} grew to Lv${this.playerActive.level}!`);
+        }
+        // Level-up evolution.
+        if (this.playerActive.canEvolve()) {
+            const oldName = this.playerActive.species.name;
+            if (this.playerActive.evolve()) {
+                this.addMessage(`${oldName} evolved into ${this.playerActive.species.name}!`);
+            }
+        }
     }
 
     handleVictory() {
-        const expGained = Math.floor(this.enemyActive.species.expYield * this.enemyActive.level / 7);
-        this.addMessage(`${this.playerActive.species.name} gained ${expGained} EXP!`);
+        if (this.battleEnded) return;
 
-        this.playerActive.gainExp(expGained);
-
-        // Award money for trainer battles
         if (!this.isWild && this.trainerNPC) {
-            // Calculate money: baseReward × highestTrainLevel × 2
             const highestLevel = Math.max(...this.trainerNPC.party.map(t => t.level));
             const baseReward = this.trainerNPC.baseReward ||
-                              (this.trainerNPC.type === 'gym_leader' ? 100 : 50);
+                (this.trainerNPC.type === 'gym_leader' ? 100 : 50);
             const moneyEarned = baseReward * highestLevel * 2;
-
             this.addMessage(`You won $${moneyEarned}!`);
-
-            // Store money to be awarded by onVictory callback
             this.moneyEarned = moneyEarned;
         } else if (this.isWild) {
-            // Award smaller money for wild battles
-            const moneyEarned = Math.floor(this.enemyActive.level * 10 + Math.random() * 20);
+            const moneyEarned = Math.floor(this.enemyActive.level * 10 + Utils.randomInt(0, 20));
             this.addMessage(`You found $${moneyEarned}!`);
             this.moneyEarned = moneyEarned;
         }
 
-        if (this.onVictory) {
-            this.onVictory();
-        }
+        if (this.onVictory) this.onVictory();
 
         this.state = CONSTANTS.BATTLE_STATES.VICTORY;
         this.battleEnded = true;
@@ -334,6 +481,7 @@ class Battle {
     }
 
     handleDefeat() {
+        if (this.battleEnded) return;
         this.addMessage("You have no more trains!");
         this.addMessage("You blacked out!");
         this.state = CONSTANTS.BATTLE_STATES.DEFEAT;
@@ -341,27 +489,41 @@ class Battle {
         this.playerWon = false;
     }
 
+    // THE single owner of end-of-battle resolution. Called once per drained
+    // animation queue. Idempotent via the battleEnded guard.
     checkBattleEnd() {
+        if (this.battleEnded) return;
+
         if (this.playerActive.fainted) {
-            // Check for more trains
             const nextTrain = this.playerTrains.find(t => !t.fainted);
             if (nextTrain) {
                 this.playerActive = nextTrain;
+                this.resetStages('player');
                 this.addMessage(`Go! ${this.playerActive.species.name}!`);
             } else {
                 this.handleDefeat();
+                return;
             }
         }
 
         if (this.enemyActive.fainted) {
-            // Check for more enemy trains
+            // Award EXP for THIS defeated enemy before sending out the next one.
+            this.awardExp(this.enemyActive);
             const nextTrain = this.enemyTrains.find(t => !t.fainted);
             if (nextTrain) {
                 this.enemyActive = nextTrain;
+                this.resetStages('enemy');
                 this.addMessage(`Enemy sent out ${this.enemyActive.species.name}!`);
             } else {
                 this.handleVictory();
+                return;
             }
+        }
+
+        // Switched in a new train without ending the battle: back to the menu.
+        if (!this.battleEnded) {
+            this.state = CONSTANTS.BATTLE_STATES.MESSAGE;
+            this.currentMessage = 0;
         }
     }
 
@@ -388,35 +550,41 @@ class Battle {
         }
     }
 
+    // Battle item list derived from the live inventory + Items registry.
     getUsableItems() {
-        if (!this.playerInventory) return [];
-
-        const items = [];
-        if (this.playerInventory.potion > 0) {
-            items.push({ name: 'potion', displayName: 'Potion', quantity: this.playerInventory.potion });
-        }
-        if (this.playerInventory.super_potion > 0) {
-            items.push({ name: 'super_potion', displayName: 'Super Potion', quantity: this.playerInventory.super_potion });
-        }
-        if (this.playerInventory.boxcar > 0) {
-            items.push({ name: 'boxcar', displayName: 'Boxcar', quantity: this.playerInventory.boxcar });
-        }
-
-        return items;
+        if (!this.game || !this.game.player) return [];
+        return Items.battleUsable(this.game.player).map(it => ({
+            name: it.id, displayName: it.name, quantity: it.quantity
+        }));
     }
 
     useItem(item) {
-        if (item.name === 'potion' || item.name === 'super_potion') {
-            this.usePotion(item.name);
-        } else if (item.name === 'boxcar') {
-            this.useBoxcar();
+        const def = Items.get(item.name);
+        if (!def) return;
+        if (def.kind === 'capture') this.useBoxcar();
+        else if (def.kind === 'heal') this.usePotion(item.name);
+    }
+
+    // Switch the active train to the next healthy benched one. Costs the turn.
+    switchToBenchedTrain() {
+        const next = this.playerTrains.find(t => t !== this.playerActive && !t.fainted);
+        if (!next) {
+            this.addMessage("No other trains available!");
+            this.state = CONSTANTS.BATTLE_STATES.MESSAGE;
+            this.currentMessage = 0;
+            return;
         }
+        this.state = CONSTANTS.BATTLE_STATES.ANIMATION;
+        this.playerActive = next;
+        this.resetStages('player');
+        this.addMessage(`Go! ${this.playerActive.species.name}!`);
+        this.animationQueue.push({ callback: () => this.enemyFreeTurn() });
     }
 
     usePotion(potionType) {
-        const healAmount = potionType === 'potion' ? 20 : 50;
+        const def = Items.get(potionType);
+        const healAmount = def ? def.amount : 20;
 
-        // Check if train is at full HP
         if (this.playerActive.currentHP === this.playerActive.maxHP) {
             this.addMessage("HP is already full!");
             this.state = CONSTANTS.BATTLE_STATES.MESSAGE;
@@ -424,23 +592,19 @@ class Battle {
             return;
         }
 
-        // Use the potion
         this.state = CONSTANTS.BATTLE_STATES.ANIMATION;
-        const displayName = potionType === 'potion' ? 'Potion' : 'Super Potion';
-        this.addMessage(`You used a ${displayName}!`);
+        this.addMessage(`You used a ${def ? def.name : potionType}!`);
 
         const oldHP = this.playerActive.currentHP;
         this.playerActive.heal(healAmount);
         const actualHealed = this.playerActive.currentHP - oldHP;
 
-        this.playerInventory[potionType]--;
+        this.playerInventory[potionType] = Math.max(0, (this.playerInventory[potionType] || 0) - 1);
 
         this.animationQueue.push({
             callback: () => {
                 this.addMessage(`${this.playerActive.species.name} recovered ${actualHealed} HP!`);
-
-                // Enemy turn
-                this.executeEnemyMove();
+                this.enemyFreeTurn();
             }
         });
     }
@@ -457,7 +621,7 @@ class Battle {
         this.state = CONSTANTS.BATTLE_STATES.ANIMATION;
         this.addMessage("You threw a Boxcar!");
 
-        this.playerInventory.boxcar--;
+        this.playerInventory.boxcar = Math.max(0, (this.playerInventory.boxcar || 0) - 1);
 
         // Gen 1 capture formula
         const catchRate = this.enemyActive.species.catchRate || 45;
@@ -497,237 +661,273 @@ class Battle {
                     ];
                     this.addMessage(shakeMessages[shakes] || "Oh no! The train broke free!");
 
-                    // Enemy turn
-                    this.executeEnemyMove();
+                    // The wild train gets a free turn after a failed catch.
+                    this.enemyFreeTurn();
                 }
             }
         });
     }
 
+    // Rounded-rect path helper.
+    rr(ctx, x, y, w, h, r) {
+        ctx.beginPath();
+        if (ctx.roundRect) { ctx.roundRect(x, y, w, h, r); return; }
+        ctx.moveTo(x + r, y);
+        ctx.arcTo(x + w, y, x + w, y + h, r);
+        ctx.arcTo(x + w, y + h, x, y + h, r);
+        ctx.arcTo(x, y + h, x, y, r);
+        ctx.arcTo(x, y, x + w, y, r);
+        ctx.closePath();
+    }
+
+    hpColor(pct) {
+        const C = CONSTANTS.COLORS;
+        return pct > 0.5 ? C.HP_GREEN : pct > 0.2 ? C.HP_YELLOW : C.HP_RED;
+    }
+
+    // One combatant's status panel: framed card, name + Lv, HP bar, type chips.
+    drawStatusPanel(ctx, train, px, py, pw, showNumbers) {
+        const C = CONSTANTS.COLORS;
+        const ph = 86;
+        // shadow + frame
+        ctx.fillStyle = 'rgba(24,24,24,0.25)';
+        this.rr(ctx, px + 4, py + 4, pw, ph, 12); ctx.fill();
+        ctx.fillStyle = '#181818';
+        this.rr(ctx, px, py, pw, ph, 12); ctx.fill();
+        ctx.fillStyle = C.UI_BG;
+        this.rr(ctx, px + 4, py + 4, pw - 8, ph - 8, 9); ctx.fill();
+
+        // name + level
+        ctx.fillStyle = '#181818';
+        ctx.font = 'bold 18px monospace';
+        ctx.fillText(train.nickname || train.species.name, px + 16, py + 28);
+        ctx.font = 'bold 14px monospace';
+        ctx.textAlign = 'right';
+        ctx.fillText(`Lv${train.level}`, px + pw - 14, py + 28);
+        ctx.textAlign = 'left';
+
+        // status badge (PAR/BRN/PSN)
+        if (train.status) {
+            const tag = { paralyze: 'PAR', burn: 'BRN', poison: 'PSN' }[train.status] || '';
+            const col = { paralyze: '#F8C838', burn: '#F83048', poison: '#A040A0' }[train.status] || '#888';
+            ctx.fillStyle = col;
+            this.rr(ctx, px + 16, py + 34, 40, 16, 4); ctx.fill();
+            ctx.fillStyle = '#fff'; ctx.font = 'bold 11px monospace';
+            ctx.fillText(tag, px + 22, py + 46);
+        }
+
+        // HP bar
+        const barX = px + (train.status ? 64 : 16), barY = py + 38, barW = pw - (barX - px) - 16, barH = 12;
+        const pct = Math.max(0, train.currentHP / train.maxHP);
+        ctx.fillStyle = '#181818';
+        this.rr(ctx, barX - 2, barY - 2, barW + 4, barH + 4, 4); ctx.fill();
+        ctx.fillStyle = C.HP_BG;
+        this.rr(ctx, barX, barY, barW, barH, 3); ctx.fill();
+        ctx.fillStyle = this.hpColor(pct);
+        if (pct > 0) { this.rr(ctx, barX, barY, barW * pct, barH, 3); ctx.fill(); }
+
+        // type chips
+        let chipX = px + 16;
+        const chipY = py + 58;
+        ctx.font = 'bold 10px monospace';
+        for (const t of train.types) {
+            const cw = ctx.measureText(t).width + 14;
+            ctx.fillStyle = CONSTANTS.TYPE_COLORS[t] || '#888';
+            this.rr(ctx, chipX, chipY, cw, 16, 4); ctx.fill();
+            ctx.fillStyle = '#fff';
+            ctx.fillText(t, chipX + 7, chipY + 12);
+            chipX += cw + 6;
+        }
+
+        if (showNumbers) {
+            ctx.fillStyle = '#181818';
+            ctx.font = 'bold 12px monospace';
+            ctx.textAlign = 'right';
+            ctx.fillText(`${train.currentHP}/${train.maxHP}`, px + pw - 14, py + 70);
+            ctx.textAlign = 'left';
+        }
+    }
+
+    drawMenuGrid(ctx, items, selectedIndex, colorFor) {
+        const C = CONSTANTS.COLORS;
+        const menuX = 408, menuY = 566, bw = 162, bh = 40, gap = 6;
+        items.forEach((label, index) => {
+            if (!label) return;
+            const x = menuX + (index % 2) * (bw + gap);
+            const y = menuY + Math.floor(index / 2) * (bh + gap);
+            const sel = index === selectedIndex;
+            const accent = colorFor ? colorFor(index) : C.UI_HIGHLIGHT;
+            ctx.fillStyle = '#181818';
+            this.rr(ctx, x, y, bw, bh, 8); ctx.fill();
+            ctx.fillStyle = sel ? accent : C.WHITE;
+            this.rr(ctx, x + 3, y + 3, bw - 6, bh - 6, 6); ctx.fill();
+            // selection cursor
+            if (sel) {
+                ctx.fillStyle = '#181818';
+                ctx.font = 'bold 16px monospace';
+                ctx.fillText('>', x + 10, y + bh / 2 + 6);
+            }
+            ctx.fillStyle = sel ? '#fff' : '#181818';
+            ctx.font = 'bold 15px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(label, x + bw / 2 + 6, y + bh / 2 + 6);
+            ctx.textAlign = 'left';
+        });
+    }
+
     render(ctx) {
         const canvas = ctx.canvas;
+        const C = CONSTANTS.COLORS;
 
-        // Pokemon-style solid cream background
-        ctx.fillStyle = CONSTANTS.COLORS.UI_BG;
+        // Backdrop: sky gradient + ground band
+        const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        sky.addColorStop(0, C.BATTLE_SKY2);
+        sky.addColorStop(1, C.BATTLE_SKY);
+        ctx.fillStyle = sky;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = C.BATTLE_GROUND;
+        ctx.fillRect(0, 372, canvas.width, canvas.height - 372);
 
-        // Calculate animation offsets
-        const enemyShakeX = this.enemyShake > 0 ? Math.sin(Date.now() * 0.05) * this.enemyShake * 2 : 0;
-        const playerShakeX = this.playerShake > 0 ? Math.sin(Date.now() * 0.05) * this.playerShake * 2 : 0;
+        // Battle platforms (oval pads under each combatant)
+        ctx.fillStyle = C.BATTLE_PLATFORM;
+        ctx.beginPath(); ctx.ellipse(604, 280, 132, 30, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(196, 452, 156, 36, 0, 0, Math.PI * 2); ctx.fill();
 
-        // Pokemon-style sprite positioning
-        // Enemy train sprite (upper right, front-facing)
+        // deltaTime-driven shake (no Date.now())
+        const enemyShakeX = this.enemyShake > 0 ? Math.sin(this.animationTimer * 40) * this.enemyShake * 2 : 0;
+        const playerShakeX = this.playerShake > 0 ? Math.sin(this.animationTimer * 40) * this.playerShake * 2 : 0;
+
         if (this.enemyActive) {
-            // Flash effect when taking damage
+            this.drawEnemyTrain(ctx, 540 + enemyShakeX, 150);
             if (this.enemyFlash > 0) {
-                ctx.globalAlpha = 0.5 + (this.enemyFlash * 0.5);
-                ctx.fillStyle = CONSTANTS.COLORS.HP_RED;
-                ctx.fillRect(500 + enemyShakeX - 10, 140 - 10, 100, 100);
+                ctx.globalAlpha = this.enemyFlash * 0.5;
+                ctx.fillStyle = C.HP_RED;
+                ctx.fillRect(540 + enemyShakeX, 150, 128, 128);
                 ctx.globalAlpha = 1.0;
             }
-            this.drawEnemyTrain(ctx, 500 + enemyShakeX, 140);
+            this.drawStatusPanel(ctx, this.enemyActive, 36, 40, 320, false);
         }
 
-        // Player train sprite (lower left, back-facing)
         if (this.playerActive) {
-            // Flash effect when taking damage
+            this.drawPlayerTrain(ctx, 132 + playerShakeX, 312);
             if (this.playerFlash > 0) {
-                ctx.globalAlpha = 0.5 + (this.playerFlash * 0.5);
-                ctx.fillStyle = CONSTANTS.COLORS.HP_RED;
-                ctx.fillRect(120 + playerShakeX - 10, 320 - 10, 100, 100);
+                ctx.globalAlpha = this.playerFlash * 0.5;
+                ctx.fillStyle = C.HP_RED;
+                ctx.fillRect(132 + playerShakeX, 312, 128, 128);
                 ctx.globalAlpha = 1.0;
             }
-            this.drawPlayerTrain(ctx, 120 + playerShakeX, 320);
+            this.drawStatusPanel(ctx, this.playerActive, canvas.width - 356, 452, 320, true);
         }
 
-        // Pokemon-style enemy info panel (top-left)
-        if (this.enemyActive) {
-            // Panel background
-            ctx.fillStyle = CONSTANTS.COLORS.WHITE;
-            ctx.fillRect(40, 30, 320, 80);
-            ctx.strokeStyle = CONSTANTS.COLORS.BLACK;
-            ctx.lineWidth = 3;
-            ctx.strokeRect(40, 30, 320, 80);
+        // Message box (framed, bottom full-width)
+        ctx.fillStyle = '#181818';
+        this.rr(ctx, 16, 556, canvas.width - 32, 100, 14); ctx.fill();
+        ctx.fillStyle = C.UI_BG;
+        this.rr(ctx, 22, 562, canvas.width - 44, 88, 10); ctx.fill();
 
-            // Name and level
-            ctx.fillStyle = CONSTANTS.COLORS.BLACK;
-            ctx.font = '20px monospace';
-            ctx.fillText(this.enemyActive.nickname || this.enemyActive.species.name, 55, 58);
-            ctx.font = '16px monospace';
-            ctx.fillText(`Lv${this.enemyActive.level}`, 290, 58);
-
-            // HP label
-            ctx.font = '14px monospace';
-            ctx.fillText('HP:', 55, 85);
-
-            // Enemy HP bar (Pokemon Gen 1 style - no numbers shown)
-            const enemyHPPercent = this.enemyActive.currentHP / this.enemyActive.maxHP;
-            ctx.fillStyle = CONSTANTS.COLORS.HP_BG;
-            ctx.fillRect(95, 73, 240, 16);
-
-            // HP bar fill with authentic Pokemon colors
-            if (enemyHPPercent > 0.5) {
-                ctx.fillStyle = CONSTANTS.COLORS.HP_GREEN;
-            } else if (enemyHPPercent > 0.2) {
-                ctx.fillStyle = CONSTANTS.COLORS.HP_YELLOW;
-            } else {
-                ctx.fillStyle = CONSTANTS.COLORS.HP_RED;
-            }
-            ctx.fillRect(95, 73, 240 * enemyHPPercent, 16);
-            ctx.strokeStyle = CONSTANTS.COLORS.BLACK;
-            ctx.lineWidth = 2;
-            ctx.strokeRect(95, 73, 240, 16);
-        }
-
-        // Pokemon-style player info panel (bottom-right)
-        if (this.playerActive) {
-            // Panel background
-            ctx.fillStyle = CONSTANTS.COLORS.WHITE;
-            ctx.fillRect(408, 450, 340, 100);
-            ctx.strokeStyle = CONSTANTS.COLORS.BLACK;
-            ctx.lineWidth = 3;
-            ctx.strokeRect(408, 450, 340, 100);
-
-            // Name and level
-            ctx.fillStyle = CONSTANTS.COLORS.BLACK;
-            ctx.font = '20px monospace';
-            ctx.fillText(this.playerActive.nickname || this.playerActive.species.name, 425, 478);
-            ctx.font = '16px monospace';
-            ctx.fillText(`Lv${this.playerActive.level}`, 680, 478);
-
-            // HP label
-            ctx.font = '14px monospace';
-            ctx.fillText('HP:', 425, 508);
-
-            // Player HP bar
-            const playerHPPercent = this.playerActive.currentHP / this.playerActive.maxHP;
-            ctx.fillStyle = CONSTANTS.COLORS.HP_BG;
-            ctx.fillRect(465, 496, 260, 16);
-
-            // HP bar fill with authentic Pokemon colors
-            if (playerHPPercent > 0.5) {
-                ctx.fillStyle = CONSTANTS.COLORS.HP_GREEN;
-            } else if (playerHPPercent > 0.2) {
-                ctx.fillStyle = CONSTANTS.COLORS.HP_YELLOW;
-            } else {
-                ctx.fillStyle = CONSTANTS.COLORS.HP_RED;
-            }
-            ctx.fillRect(465, 496, 260 * playerHPPercent, 16);
-            ctx.strokeStyle = CONSTANTS.COLORS.BLACK;
-            ctx.lineWidth = 2;
-            ctx.strokeRect(465, 496, 260, 16);
-
-            // HP numbers (shown for player's Pokemon in Gen 1)
-            ctx.fillStyle = CONSTANTS.COLORS.BLACK;
-            ctx.font = '14px monospace';
-            ctx.textAlign = 'right';
-            ctx.fillText(`${this.playerActive.currentHP}/ ${this.playerActive.maxHP}`, 720, 532);
-            ctx.textAlign = 'left'; // Reset alignment
-        }
-
-        // Pokemon-style message box (bottom, full width)
-        ctx.fillStyle = CONSTANTS.COLORS.WHITE;
-        ctx.fillRect(20, 560, canvas.width - 40, 90);
-        ctx.strokeStyle = CONSTANTS.COLORS.BLACK;
-        ctx.lineWidth = 3;
-        ctx.strokeRect(20, 560, canvas.width - 40, 90);
-
-        // Display current message with Pokemon font
-        ctx.fillStyle = CONSTANTS.COLORS.BLACK;
+        ctx.fillStyle = '#181818';
         ctx.font = '18px monospace';
         if (this.messages.length > 0 && this.currentMessage < this.messages.length) {
-            const message = this.messages[this.currentMessage];
-            this.wrapText(ctx, message, 40, 590, canvas.width - 80, 24);
+            this.wrapText(ctx, this.messages[this.currentMessage], 40, 592, canvas.width - 360, 24);
         }
 
-        // Pokemon-style 2x2 battle menu (overlays right side of message box)
+        // Action menu (FIGHT/TRAIN/ITEM/RUN)
         if (this.state === CONSTANTS.BATTLE_STATES.MENU) {
-            const menuOptions = ['FIGHT', 'TRAIN', 'ITEM', 'RUN'];
-            const menuX = 420;
-            const menuY = 565;
-            const buttonWidth = 155;
-            const buttonHeight = 38;
-
-            menuOptions.forEach((option, index) => {
-                const x = menuX + (index % 2) * (buttonWidth + 5);
-                const y = menuY + Math.floor(index / 2) * (buttonHeight + 4);
-
-                // Pokemon-style button styling
-                ctx.fillStyle = index === this.menuSelection ? CONSTANTS.COLORS.UI_HIGHLIGHT : CONSTANTS.COLORS.WHITE;
-                ctx.fillRect(x, y, buttonWidth, buttonHeight);
-                ctx.strokeStyle = CONSTANTS.COLORS.BLACK;
-                ctx.lineWidth = 3;
-                ctx.strokeRect(x, y, buttonWidth, buttonHeight);
-
-                // Button text
-                ctx.fillStyle = index === this.menuSelection ? CONSTANTS.COLORS.WHITE : CONSTANTS.COLORS.BLACK;
-                ctx.font = 'bold 16px monospace';
-                ctx.textAlign = 'center';
-                ctx.fillText(option, x + buttonWidth / 2, y + buttonHeight / 2 + 6);
-                ctx.textAlign = 'left'; // Reset alignment
-            });
+            this.drawMenuGrid(ctx, ['FIGHT', 'TRAIN', 'ITEM', 'RUN'], this.menuSelection);
         }
 
-        // Pokemon-style move selection menu (2x2 grid)
+        // Move menu - each button tinted by the move's type.
         if (this.state === CONSTANTS.BATTLE_STATES.FIGHT) {
             const moves = this.playerActive.moves;
-            const menuX = 420;
-            const menuY = 565;
-            const buttonWidth = 155;
-            const buttonHeight = 38;
+            this.drawMenuGrid(ctx, moves.map(m => typeof m === 'string' ? m : m.name), this.moveSelection,
+                (i) => {
+                    const md = MOVES_DB[moves[i]];
+                    return (md && CONSTANTS.TYPE_COLORS[md.type]) || CONSTANTS.COLORS.UI_HIGHLIGHT;
+                });
+        }
+    }
 
-            moves.forEach((move, index) => {
-                if (move) {
-                    const x = menuX + (index % 2) * (buttonWidth + 5);
-                    const y = menuY + Math.floor(index / 2) * (buttonHeight + 4);
+    // Stylized locomotive fallback art (steam-engine palette). facing 'front'
+    // points the cab/buffer toward the player; 'back' faces away.
+    drawLoco(ctx, x, y, facing) {
+        const C = CONSTANTS.COLORS;
+        const front = facing === 'front';
+        const w = 124, bodyY = y + 36, bodyH = 46;
 
-                    // Pokemon-style button styling
-                    ctx.fillStyle = index === this.moveSelection ? CONSTANTS.COLORS.UI_HIGHLIGHT : CONSTANTS.COLORS.WHITE;
-                    ctx.fillRect(x, y, buttonWidth, buttonHeight);
-                    ctx.strokeStyle = CONSTANTS.COLORS.BLACK;
-                    ctx.lineWidth = 3;
-                    ctx.strokeRect(x, y, buttonWidth, buttonHeight);
+        // contact shadow
+        ctx.fillStyle = 'rgba(24,24,24,0.22)';
+        ctx.beginPath(); ctx.ellipse(x + w / 2, y + 116, 58, 12, 0, 0, Math.PI * 2); ctx.fill();
 
-                    // Move name text
-                    const moveName = typeof move === 'string' ? move : move.name;
-                    ctx.fillStyle = index === this.moveSelection ? CONSTANTS.COLORS.WHITE : CONSTANTS.COLORS.BLACK;
-                    ctx.font = 'bold 14px monospace';
-                    ctx.textAlign = 'center';
-                    ctx.fillText(moveName, x + buttonWidth / 2, y + buttonHeight / 2 + 5);
-                    ctx.textAlign = 'left'; // Reset alignment
-                }
-            });
+        // boiler body
+        ctx.fillStyle = C.LOCO_BODY;
+        ctx.fillRect(x + 8, bodyY, w - 16, bodyH);
+        ctx.fillStyle = C.LOCO_BODY_DARK;
+        ctx.fillRect(x + 8, bodyY + bodyH - 8, w - 16, 8); // underside shade
+        ctx.fillStyle = 'rgba(255,255,255,0.12)';
+        ctx.fillRect(x + 8, bodyY, w - 16, 6); // top sheen
+
+        // cab (rear)
+        const cabX = front ? x + w - 42 : x + 6;
+        ctx.fillStyle = C.LOCO_BODY_DARK;
+        ctx.fillRect(cabX, y + 14, 36, bodyH + 6);
+        ctx.fillStyle = '#9CD0E8'; // cab window
+        ctx.fillRect(cabX + 7, y + 22, 22, 16);
+
+        // smokestack + dome (front)
+        const stackX = front ? x + 20 : x + w - 34;
+        ctx.fillStyle = C.LOCO_IRON_DARK;
+        ctx.fillRect(stackX, y + 6, 14, 32);
+        ctx.fillStyle = C.LOCO_BRASS;
+        ctx.fillRect(stackX - 2, y + 4, 18, 6); // stack rim
+        ctx.fillStyle = C.LOCO_BRASS;
+        ctx.beginPath(); ctx.arc(x + w / 2, bodyY + 6, 8, Math.PI, 0); ctx.fill(); // steam dome
+
+        // front buffer beam + headlight (only when facing us)
+        if (front) {
+            ctx.fillStyle = C.LOCO_IRON_DARK;
+            ctx.fillRect(x, bodyY + 6, 10, bodyH - 6);
+            ctx.fillStyle = C.LOCO_BRASS;
+            ctx.beginPath(); ctx.arc(x + 6, bodyY + bodyH / 2, 6, 0, Math.PI * 2); ctx.fill(); // headlight
+            ctx.fillStyle = C.LOCO_RED;
+            ctx.fillRect(x + 8, bodyY + bodyH - 14, w - 16, 5); // red accent stripe
+        }
+
+        // wheels
+        ctx.fillStyle = C.LOCO_IRON;
+        for (let i = 0; i < 3; i++) {
+            const wx = x + 24 + i * 34;
+            ctx.beginPath(); ctx.arc(wx, bodyY + bodyH, 11, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = C.LOCO_IRON_DARK;
+            ctx.beginPath(); ctx.arc(wx, bodyY + bodyH, 4, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = C.LOCO_IRON;
+        }
+
+        // steam puffs from the stack
+        ctx.fillStyle = 'rgba(232,232,232,0.85)';
+        for (let i = 0; i < 3; i++) {
+            const t = this.animationTimer + i;
+            ctx.beginPath();
+            ctx.arc(stackX + 7 + Math.sin(t) * 5, y + 2 - i * 9, 5 + i * 2, 0, Math.PI * 2);
+            ctx.fill();
         }
     }
 
     drawEnemyTrain(ctx, x, y) {
-        // Red train facing left (front view)
-        ctx.fillStyle = '#D32F2F';
-        ctx.fillRect(x, y + 20, 80, 40); // Main body
-        ctx.fillStyle = '#C62828';
-        ctx.fillRect(x + 10, y, 20, 25); // Smoke stack
-        ctx.fillStyle = '#424242';
-        ctx.beginPath();
-        ctx.arc(x + 20, y + 70, 10, 0, Math.PI * 2); // Front wheel
-        ctx.arc(x + 60, y + 70, 10, 0, Math.PI * 2); // Back wheel
-        ctx.fill();
-        ctx.fillStyle = '#FFEB3B';
-        ctx.fillRect(x + 5, y + 30, 12, 12); // Window
+        const sprite = this.game.images[`${this.enemyActive.species.name}_front`];
+        if (sprite && sprite.complete && sprite.naturalWidth > 0) {
+            ctx.drawImage(sprite, x, y, 128, 128);
+        } else {
+            this.drawLoco(ctx, x, y, 'front');
+        }
     }
 
     drawPlayerTrain(ctx, x, y) {
-        // Blue train facing right (back view)
-        ctx.fillStyle = '#1976D2';
-        ctx.fillRect(x, y + 20, 80, 40); // Main body
-        ctx.fillStyle = '#1565C0';
-        ctx.fillRect(x + 50, y, 20, 25); // Smoke stack
-        ctx.fillStyle = '#424242';
-        ctx.beginPath();
-        ctx.arc(x + 20, y + 70, 10, 0, Math.PI * 2); // Front wheel
-        ctx.arc(x + 60, y + 70, 10, 0, Math.PI * 2); // Back wheel
-        ctx.fill();
-        ctx.fillStyle = '#FFEB3B';
-        ctx.fillRect(x + 63, y + 30, 12, 12); // Window
+        const sprite = this.game.images[`${this.playerActive.species.name}_back`];
+        if (sprite && sprite.complete && sprite.naturalWidth > 0) {
+            ctx.drawImage(sprite, x, y, 128, 128);
+        } else {
+            this.drawLoco(ctx, x, y, 'back');
+        }
     }
 
     wrapText(ctx, text, x, y, maxWidth, lineHeight) {
