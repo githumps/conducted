@@ -109,9 +109,14 @@ class Player {
         return this.party.some(train => !train.fainted);
     }
 
+    // Single canonical heal: full HP, clear status, revive fainted.
+    // (healAllTrains is kept as an alias below for older call sites.)
     healParty() {
         for (const train of this.party) {
-            train.heal(train.maxHP);
+            if (!train || typeof train.maxHP === 'undefined') continue;
+            train.currentHP = train.maxHP;
+            train.status = null;
+            train.fainted = false;
         }
     }
 
@@ -132,7 +137,16 @@ class Player {
     }
 
     addMoney(amount) {
-        this.money = Math.max(0, this.money + amount);
+        this.money = Math.max(0, this.money + Math.floor(amount));
+    }
+
+    // Returns true and deducts if affordable; false otherwise. The single
+    // gate for spending so money can never be driven negative.
+    spendMoney(amount) {
+        amount = Math.floor(amount);
+        if (amount < 0 || this.money < amount) return false;
+        this.money -= amount;
+        return true;
     }
 
     earnBadge(badgeName) {
@@ -148,27 +162,14 @@ class Player {
         return this.badges.includes(badgeName);
     }
 
+    // Alias kept for backwards compatibility - delegates to the canonical heal.
     healAllTrains() {
-        // Heal all trains in party to full HP and remove status effects
-        if (!this.party || this.party.length === 0) {
-            console.log('No trains to heal!');
-            return;
-        }
-
-        for (let train of this.party) {
-            if (!train || typeof train.maxHP === 'undefined') {
-                console.warn('Skipping invalid train:', train);
-                continue;
-            }
-            train.currentHP = train.maxHP; // Use maxHP, not stats.hp
-            train.status = null;
-            train.fainted = false;
-        }
-        console.log('All trains healed to full HP!');
+        this.healParty();
     }
 
     toJSON() {
         return {
+            version: Player.SAVE_VERSION,
             name: this.name,
             x: this.x,
             y: this.y,
@@ -187,22 +188,38 @@ class Player {
 
     static fromJSON(data) {
         const player = new Player();
-        player.name = data.name;
-        player.x = data.x;
-        player.y = data.y;
-        player.direction = data.direction;
-        player.currentMap = data.currentMap;
-        player.party = data.party.map(t => Train.fromJSON(t));
-        player.items = data.items;
-        player.money = data.money;
+        if (!data) return player;
+
+        player.name = data.name ?? player.name;
+        player.x = data.x ?? player.x;
+        player.y = data.y ?? player.y;
+        player.direction = data.direction ?? player.direction;
+        player.currentMap = data.currentMap ?? player.currentMap;
+
+        // Party: guard against missing/empty and drop any entry that fails to
+        // deserialize rather than throwing out the whole save.
+        player.party = Array.isArray(data.party)
+            ? data.party.map(t => {
+                try { return Train.fromJSON(t); } catch (e) { console.warn('Bad train in save, skipped:', e); return null; }
+            }).filter(Boolean)
+            : [];
+
+        // Merge saved items OVER the constructor defaults so keys added in a
+        // newer build (future items) are still present after loading an old save.
+        player.items = { ...player.items, ...(data.items || {}) };
+
+        player.money = typeof data.money === 'number' ? data.money : player.money;
         player.badges = data.badges || [];
-        player.badgeCount = data.badgeCount || 0;
+        player.badgeCount = data.badgeCount || player.badges.length;
         player.hasStarterTrain = data.hasStarterTrain || false;
         player.metProfessor = data.metProfessor || false;
         player.defeatedGymLeaders = data.defeatedGymLeaders || [];
         return player;
     }
 }
+
+// Bump when the save shape changes incompatibly so loaders can migrate.
+Player.SAVE_VERSION = 1;
 
 // Export
 if (typeof module !== 'undefined' && module.exports) {

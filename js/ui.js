@@ -234,8 +234,8 @@ class UI {
                 ctx.fillStyle = CONSTANTS.COLORS.BLACK;
             }
 
-            const hpPercent = Math.floor((train.currentHP / train.stats.hp) * 100);
-            ctx.fillText(`${train.name} Lv${train.level} HP: ${train.currentHP}/${train.stats.hp} (${hpPercent}%)`, x + 20, trainY);
+            const hpPercent = Math.floor((train.currentHP / train.maxHP) * 100);
+            ctx.fillText(`${train.nickname || train.species.name} Lv${train.level} HP: ${train.currentHP}/${train.maxHP} (${hpPercent}%)`, x + 20, trainY);
         }
 
         // Instructions
@@ -332,8 +332,8 @@ class UI {
                 ctx.fillStyle = CONSTANTS.COLORS.BLACK;
             }
 
-            const hpPercent = Math.floor((train.currentHP / train.stats.hp) * 100);
-            ctx.fillText(`${train.name} Lv${train.level} HP: ${train.currentHP}/${train.stats.hp} (${hpPercent}%)`, x + 20, trainY);
+            const hpPercent = Math.floor((train.currentHP / train.maxHP) * 100);
+            ctx.fillText(`${train.nickname || train.species.name} Lv${train.level} HP: ${train.currentHP}/${train.maxHP} (${hpPercent}%)`, x + 20, trainY);
         }
 
         // Instructions

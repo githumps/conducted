@@ -42,6 +42,13 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('✅ All assets loaded');
             updateLoadStatus('Assets loaded...', '#ffaa00');
 
+            // Force state to TITLE to ensure we don't get stuck
+            game.state = 'title'; // Use string literal to avoid CONSTANTS dependency if that's the issue
+
+            // Hide load status immediately
+            const loadStatus = document.getElementById('load-status');
+            if (loadStatus) loadStatus.style.display = 'none';
+
             // Initialize mobile controls
             console.log('Initializing mobile controls...');
             updateLoadStatus('Setting up controls...', '#ffaa00');
@@ -67,12 +74,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Render
                     game.render();
 
-                    // Continue loop
-                    requestAnimationFrame(gameLoop);
+                    // Clear one-shot "just pressed" input AFTER this frame consumed
+                    // it, so a key can't be re-consumed by a different state next
+                    // frame (prevents phantom/double menu actions across transitions).
+                    game.input.reset();
                 } catch (error) {
                     console.error('❌ Error in game loop:', error);
                     updateLoadStatus(`ERROR: ${error.message}`, '#ff0000');
                 }
+                // ALWAYS re-schedule: one transient throw must not permanently
+                // freeze the game. (Previously the catch skipped the next rAF.)
+                requestAnimationFrame(gameLoop);
             }
 
             // Start game loop AFTER assets are loaded
@@ -81,33 +93,40 @@ document.addEventListener('DOMContentLoaded', () => {
             requestAnimationFrame(gameLoop);
             console.log('✓ Game loop started');
 
-        // Auto-save every 30 seconds
-        setInterval(() => {
-            if (game.player && game.state === CONSTANTS.STATES.OVERWORLD) {
-                game.save();
+            // Auto-save every 30 seconds. Keep the handle so it can be cleared
+            // (and exposed for teardown in tests / re-init).
+            game.autoSaveInterval = setInterval(() => {
+                if (game.player && game.state === CONSTANTS.STATES.OVERWORLD) {
+                    game.save();
+                }
+            }, 30000);
+
+            // Try to load save on start (but stay on title screen if it fails)
+            console.log('Checking for save data...');
+            updateLoadStatus('Loading save...', '#ffaa00');
+            const loadSuccess = game.load();
+            if (loadSuccess) {
+                console.log('📁 Save game loaded!');
+            } else {
+                console.log('💡 No valid save found - starting fresh!');
+                // Ensure we're on the title screen
+                game.state = CONSTANTS.STATES.TITLE;
             }
-        }, 30000);
 
-        // Try to load save on start (but stay on title screen if it fails)
-        console.log('Checking for save data...');
-        updateLoadStatus('Loading save...', '#ffaa00');
-        const loadSuccess = game.load();
-        if (loadSuccess) {
-            console.log('📁 Save game loaded!');
-        } else {
-            console.log('💡 No valid save found - starting fresh!');
-            // Ensure we're on the title screen
-            game.state = CONSTANTS.STATES.TITLE;
-        }
+            console.log('✅ Train Battle RPG Ready!');
+            console.log(`📍 Current state: ${game.state}`);
+            console.log('🎮 Press ENTER on the title screen to start!');
 
-        console.log('✅ Train Battle RPG Ready!');
-        console.log(`📍 Current state: ${game.state}`);
-        console.log('🎮 Press ENTER on the title screen to start!');
+            // Update load status indicator - SUCCESS!
+            updateLoadStatus(`Ready! State: ${game.state}`, '#10b010');
 
-        // Update load status indicator - SUCCESS!
-        updateLoadStatus(`Ready! State: ${game.state}`, '#10b010');
+            // Hide load status after a moment
+            setTimeout(() => {
+                const loadStatus = document.getElementById('load-status');
+                if (loadStatus) loadStatus.style.display = 'none';
+            }, 1000);
 
-    });
+        });
 
     } catch (error) {
         console.error('❌ FATAL ERROR during initialization:', error);

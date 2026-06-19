@@ -49,7 +49,41 @@ const CONSTANTS = {
         GRASS_LIGHT: '#58D878',
         GRASS_DARK: '#309850',
         WATER: '#5890D0',
-        PATH: '#C8B898'
+        PATH: '#C8B898',
+
+        LIGHT_GRAY: '#C8C8A0',
+
+        // Cohesive overworld tile palette (muted GBC, two tones per material
+        // so tiles read as textured rather than flat fills).
+        GRASS_BASE: '#7BB662',
+        GRASS_ALT: '#6AA552',
+        GRASS_SPECK: '#5C9447',
+        TALLGRASS_BASE: '#4F9A4B',
+        TALLGRASS_ALT: '#3F8540',
+        PATH_BASE: '#D8C7A0',
+        PATH_ALT: '#C8A882',
+        PATH_EDGE: '#B8924E',
+        WATER_BASE: '#5878A8',
+        WATER_ALT: '#6E8CC0',
+        WALL_BASE: '#6B4226',
+        WALL_ALT: '#4A2818',
+        RAIL_BASE: '#5C5C5C',
+        RAIL_TIE: '#3A3A3A',
+        DOOR_BASE: '#8B5A3C',
+
+        // Battle backdrop + locomotive fallback art (steam-engine palette from
+        // ART_DIRECTION_SPECS.md).
+        BATTLE_SKY: '#9CD0E8',
+        BATTLE_SKY2: '#BCE0F0',
+        BATTLE_GROUND: '#C8A882',
+        BATTLE_PLATFORM: '#A67C52',
+        LOCO_BODY: '#6B4226',
+        LOCO_BODY_DARK: '#4A2818',
+        LOCO_BRASS: '#D4A857',
+        LOCO_IRON: '#5C5C5C',
+        LOCO_IRON_DARK: '#3A3A3A',
+        LOCO_RED: '#D64545',
+        LOCO_STEAM: '#E8E8E8'
     },
 
     // Game states
